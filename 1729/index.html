@@ -3,23 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="loilo.ico" type="image/x-icon">
     <!-- UDフォント -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
     
-    <title>ロイロノート スクール (AIモード搭載)</title>
+    <title>ロイロノート スクール (Copilot Link)</title>
     <style>
         /* --- ベース設定 --- */
         body { margin: 0; padding: 0; font-family: "BIZ UDGothic", sans-serif; overflow: hidden; height: 100vh; user-select: none; color: #333; }
         
-        /* =========================================
-           画面1: ノート一覧画面
-           ========================================= */
+        /* 画面1: ノート一覧画面 */
         #view-list { display: flex; width: 100%; height: 100%; background-color: #fff; }
-
         .list-sidebar { width: 260px; background-color: #f5f5f7; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; padding-top: 20px; }
         .class-title { padding: 0 20px 15px 20px; font-weight: bold; color: #555; font-size: 1rem; }
         .subject-list { flex: 1; overflow-y: auto; padding: 0 10px; }
@@ -53,11 +49,8 @@
         .note-date { font-size: 0.85rem; color: #999; }
         .note-menu-dots { color: #bbb; font-size: 1.5rem; font-weight: bold; margin-left: 10px; }
 
-        /* =========================================
-           画面2: 編集（チャット）画面
-           ========================================= */
+        /* 画面2: 編集（チャット）画面 */
         #view-edit { display: none; width: 100%; height: 100%; background-color: #12264d; color: #333; position: relative; }
-
         .sidebar { position: absolute; left: 0; top: 0; bottom: 0; width: 70px; display: flex; flex-direction: column; z-index: 100; }
         .sidebar-upper { background-color: #f4f5f7; width: 100%; display: flex; flex-direction: column; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
         .back-nav { width: 100%; display: flex; align-items: center; justify-content: center; color: #007aff; font-weight: bold; font-size: 0.8rem; cursor: pointer; margin: 10px 0; }
@@ -71,7 +64,6 @@
         .circle-icon img { width: 100%; height: 100%; object-fit: cover; }
         .circle-wrapper::after { content: "◀"; color: #fff; font-size: 0.9rem; position: absolute; right: -18px; top: 12px; font-weight: bold; }
         .icon-label-white { color: #fff; font-size: 0.65rem; margin-top: 3px; font-weight: bold; }
-        
         .header-info-edit { position: absolute; top: 15px; right: 20px; text-align: right; color: #fff; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; }
         .user-name-area { font-size: 1.1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; }
         .user-name-area:hover { background: rgba(255,255,255,0.2); }
@@ -81,152 +73,44 @@
         .trash-img { width: 50px; opacity: 0.6; }
         .saved-badge { background: #333; color: #fff; border: 1px solid #777; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; margin-top: 2px; }
 
-        /* --- チャット(提出箱)画面 --- */
+        /* 提出箱ダミー */
         #chat-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 75%; background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: none; flex-direction: column; z-index: 200; overflow: hidden; }
         .chat-header { padding: 12px 20px; border-bottom: 1px solid #eee; font-weight: bold; color: #444; display: flex; justify-content: space-between; align-items: center; background: #fcfcfc; font-size: 1.1rem; }
-        .close-btn { cursor: pointer; font-size: 1.5rem; color: #aaa; padding: 0 10px; }
-        .close-btn:hover { color: #f00; }
         #msg-list { flex: 1; padding: 20px; overflow-y: auto; background: #f7f9fb; display: flex; flex-direction: column; gap: 15px; background-image: radial-gradient(#ddd 1px, transparent 1px); background-size: 20px 20px; }
         .msg-wrapper { display: flex; flex-direction: column; max-width: 70%; }
         .wrapper-mine { align-self: flex-end; align-items: flex-end; }
-        .wrapper-other { align-self: flex-start; align-items: flex-start; }
         .msg-card { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 1rem; border: 1px solid #eee; position: relative; width: 100%; }
         .msg-mine { background: #e6f2ff; border: 1px solid #cce5ff; }
-        .msg-other { background: #fff; }
-        .msg-name { font-size: 0.7rem; color: #888; margin-bottom: 4px; font-weight: bold; }
-        .msg-content img { max-width: 100%; border-radius: 4px; margin-top: 5px; cursor: pointer; border: 1px solid #ddd; }
-        .read-label { font-size: 0.7rem; color: #888; margin-top: 2px; font-weight: bold; }
         .input-area { padding: 15px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 10px; align-items: center; }
-        #chat-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; font-family: inherit; transition: border 0.2s; }
-        #chat-input:focus { border-color: #007aff; }
-        #photo-btn, #send-btn { background: #f0f0f0; color: #555; border: none; width: 44px; height: 44px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
-        #send-btn { background: #007aff; color: #fff; font-weight: bold; width: auto; padding: 0 20px; font-size: 1rem; }
-        #loading-indicator { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #007aff; animation: load 1s infinite linear; display: none; z-index: 300; }
-        @keyframes load { 0% { width: 0%; left: 0; } 50% { width: 50%; left: 25%; } 100% { width: 100%; left: 100%; } }
+        #chat-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
+        #send-btn { background: #007aff; color: #fff; font-weight: bold; padding: 0 20px; border:none; height:44px; border-radius:8px; cursor:pointer;}
+        #photo-btn { background: #f0f0f0; border: none; width: 44px; height: 44px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .close-btn { cursor: pointer; font-size: 1.5rem; color: #aaa; padding: 0 10px; }
 
-        /* =========================================
-           新機能用オーバーレイ
-           ========================================= */
+        /* カメラ */
+        #camera-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 500; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        #webcam-video { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); }
+        #camera-ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; pading: 20px; }
+        .cam-controls { pointer-events: auto; position: absolute; bottom: 30px; width: 100%; text-align: center; }
+        .cam-shutter { width: 70px; height: 70px; border-radius: 50%; background: #fff; border: 4px solid #ccc; display: inline-block; cursor: pointer; }
+        .cam-close { pointer-events: auto; position: absolute; bottom: 40px; right: 40px; background: #444; color: #fff; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
         
-        /* 1. カメラ画面 */
-        #camera-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 500; display: none;
-            flex-direction: column; justify-content: center; align-items: center;
-        }
-        #webcam-video {
-            width: 100%; height: 100%; object-fit: contain;
-            transform: scaleX(-1); /* 鏡のように反転 */
-        }
-        #camera-ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; /* 下のビデオをクリックさせないため */
-            display: flex; flex-direction: column; justify-content: space-between; pading: 20px;
-        }
-        .cam-controls {
-            pointer-events: auto;
-            position: absolute; bottom: 30px; width: 100%; text-align: center;
-        }
-        .cam-shutter {
-            width: 70px; height: 70px; border-radius: 50%; background: #fff; border: 4px solid #ccc;
-            display: inline-block; cursor: pointer;
-        }
-        .cam-close {
-            pointer-events: auto;
-            position: absolute; bottom: 40px; right: 40px;
-            background: #444; color: #fff; padding: 10px 20px; border-radius: 20px; cursor: pointer;
-        }
-
-        /* 2. 色選択パレット */
-        #color-picker-overlay {
-            position: fixed; top: 0; left: 70px; /* サイドバーの横 */
-            width: 300px; height: auto;
-            background: #fff; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-            z-index: 400; display: none;
-            padding: 10px; border: 1px solid #ccc;
-        }
-        .color-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
-        }
-        .color-opt {
-            height: 60px; border: 1px solid #ccc; cursor: pointer;
-        }
-        .c-pink { background: #ffcdd2; }
-        .c-red { background: #ef5350; }
-        .c-yellow { background: #fff9c4; }
-        .c-orange { background: #ffca28; }
-        .c-green-l { background: #c8e6c9; }
-        .c-green-d { background: #00897b; }
-        .c-blue-l { background: #b3e5fc; }
-        .c-blue-d { background: #1565c0; }
-        .c-white { background: #fff; }
-        .c-black { background: #000; }
-
-        /* 3. カードエディタ (ピンク等の画面) */
-        #card-editor-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #ffcdd2; /* デフォルトピンク */
-            z-index: 450; display: none;
-            flex-direction: column;
-        }
-        .editor-toolbar {
-            height: 60px; display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px;
-        }
-        .editor-tools-center {
-            display: flex; gap: 15px; background: rgba(0,0,0,0.1); padding: 5px 15px; border-radius: 30px;
-        }
-        .et-icon {
-            width: 36px; height: 36px; border-radius: 50%; background: #666; color: #fff;
-            display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 0.9rem;
-        }
+        /* 色選択 */
+        #color-picker-overlay { position: fixed; top: 0; left: 70px; width: 300px; height: auto; background: #fff; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 400; display: none; padding: 10px; border: 1px solid #ccc; }
+        .color-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .color-opt { height: 60px; border: 1px solid #ccc; cursor: pointer; }
+        .c-pink { background: #ffcdd2; } .c-red { background: #ef5350; } .c-yellow { background: #fff9c4; } .c-orange { background: #ffca28; } .c-green-l { background: #c8e6c9; } .c-green-d { background: #00897b; } .c-blue-l { background: #b3e5fc; } .c-blue-d { background: #1565c0; } .c-white { background: #fff; } .c-black { background: #000; }
+        
+        /* カードエディタ */
+        #card-editor-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffcdd2; z-index: 450; display: none; flex-direction: column; }
+        .editor-toolbar { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .editor-tools-center { display: flex; gap: 15px; background: rgba(0,0,0,0.1); padding: 5px 15px; border-radius: 30px; }
+        .et-icon { width: 36px; height: 36px; border-radius: 50%; background: #666; color: #fff; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 0.9rem; }
         .et-icon.active { background: #00bcd4; }
-        
-        .editor-send-btn {
-            background: transparent; border: 2px solid #fff; border-radius: 20px;
-            color: #fff; font-weight: bold; padding: 5px 20px; cursor: pointer;
-        }
-        .editor-back-btn {
-            width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff;
-            display: flex; justify-content: center; align-items: center; color: #fff; cursor: pointer; font-size: 1.2rem;
-        }
-        
-        .editor-main {
-            flex: 1; display: flex; justify-content: center; align-items: center; position: relative;
-        }
-        #card-textarea {
-            width: 80%; height: 80%;
-            background: transparent; border: none; outline: none;
-            font-size: 2rem; font-family: inherit; resize: none; text-align: center; color: #333;
-        }
-
-        /* 4. AIチャットモード用スタイル（新設） */
-        #ai-overlay { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            width: 600px; height: 75%; background: #fff; border-radius: 12px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: none; flex-direction: column; 
-            z-index: 460; overflow: hidden; border: 2px solid #10a37f;
-        }
-        .ai-header {
-            padding: 12px 20px; border-bottom: 1px solid #eee; font-weight: bold; color: #fff; 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: #10a37f; /* ChatGPTっぽい緑 */ font-size: 1.1rem;
-        }
-        #ai-msg-list {
-            flex: 1; padding: 20px; overflow-y: auto; background: #f0fdf4; 
-            display: flex; flex-direction: column; gap: 15px;
-        }
-        .msg-ai {
-            background: #fff; border: 1px solid #d1e7dd; 
-        }
-        .msg-user-ai {
-            background: #e6f2ff; border: 1px solid #cce5ff; align-self: flex-end;
-        }
-        .ai-avatar {
-            width: 30px; height: 30px; border-radius: 50%; background: #10a37f; 
-            display: flex; align-items: center; justify-content: center; color: #fff; margin-right: 8px; font-size: 0.8rem;
-        }
-
+        .editor-send-btn { background: transparent; border: 2px solid #fff; border-radius: 20px; color: #fff; font-weight: bold; padding: 5px 20px; cursor: pointer; }
+        .editor-back-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; display: flex; justify-content: center; align-items: center; color: #fff; cursor: pointer; font-size: 1.2rem; }
+        .editor-main { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+        #card-textarea { width: 80%; height: 80%; background: transparent; border: none; outline: none; font-size: 2rem; font-family: inherit; resize: none; text-align: center; color: #333; }
     </style>
 </head>
 <body>
@@ -292,29 +176,21 @@
             <div class="sidebar-upper">
                 <div class="back-nav" onclick="goToListMode()"><span>＜</span> 戻る</div>
                 <div class="icon-btn" id="btn-camera"><img src="kamera.png" alt="カメラ"></div>
-                <!-- テキストボタン：色選択へ -->
                 <div class="icon-btn" id="btn-text"><img src="text.png" alt="テキスト"></div>
-                
-                <!-- Webボタン: リンクへ -->
                 <div class="icon-btn" onclick="window.open('https://school.loilo.tv/jp/web.html', '_blank')"><img src="web.png" alt="Web"></div>
-                
-                <!-- ファイルボタン: アップロード -->
                 <div class="icon-btn" onclick="document.getElementById('file-input').click()"><img src="file.png" alt="ファイル"></div>
-                
                 <div class="icon-btn"><img src="think.png" alt="ツール"></div>
                 <div class="icon-btn"><img src="test.png" alt="テスト"></div>
             </div>
             <div class="sidebar-lower">
-                <!-- ★資料箱 -> AIモード起動に変更 ★ -->
-                <div class="circle-wrapper" id="btn-open-ai">
+                <!-- 資料箱 -> Copilotサイトを開く -->
+                <div class="circle-wrapper" onclick="window.open('https://copilot.microsoft.com', '_blank')">
                     <div class="circle-icon"><img src="si.png" alt="資料箱"></div>
                     <div class="icon-label-white">資料箱</div>
                 </div>
-                
-                <!-- 提出ボタン：チャットを開く -->
+                <!-- 提出ボタン -->
                 <div class="circle-wrapper" id="toggle-chat-btn"><div class="circle-icon"><img src="te.png" alt="提出"></div><div class="icon-label-white">提出</div></div>
-                
-                <!-- 送る -> ロイロノート本家URLへ移動 -->
+                <!-- 送る -->
                 <div class="circle-wrapper" onclick="window.location.href='https://loilonote.app/_/'">
                     <div class="circle-icon"><img src="o.png" alt="送る"></div>
                     <div class="icon-label-white">送る</div>
@@ -331,50 +207,28 @@
             <div class="saved-badge">保存済み</div>
         </div>
 
-        <!-- 提出箱（チャット）オーバーレイ -->
+        <!-- 提出箱ダミー -->
         <div id="chat-overlay">
-            <div id="loading-indicator"></div>
             <div class="chat-header">提出箱（テキストカード）<span class="close-btn" id="close-chat-x">×</span></div>
             <div id="msg-list"></div>
             <div class="input-area">
                 <input type="file" id="file-input" accept="image/*" style="display: none;">
-                <button id="photo-btn" title="写真を追加" style="display:none;">📷</button>
+                <button id="photo-btn">📷</button>
                 <input type="text" id="chat-input" placeholder="メッセージ..." autocomplete="off">
                 <button id="send-btn">送信</button>
             </div>
         </div>
 
-        <!-- ★ 新機能 4: AIチャットオーバーレイ ★ -->
-        <div id="ai-overlay">
-            <div class="ai-header">AIアシスタント (AI Mode)<span class="close-btn" id="close-ai-x" style="color:#fff;">×</span></div>
-            <div id="ai-msg-list">
-                <!-- 初期メッセージ -->
-                <div class="msg-wrapper wrapper-other">
-                    <div class="msg-card msg-ai" style="display:flex; align-items:flex-start;">
-                        <div class="ai-avatar">AI</div>
-                        <div>こんにちは！何かお手伝いすることはありますか？</div>
-                    </div>
-                </div>
-            </div>
-            <div class="input-area">
-                <input type="text" id="ai-input" placeholder="AIに質問する..." autocomplete="off">
-                <button id="ai-send-btn" style="background:#10a37f; color:#fff;">送信</button>
-            </div>
-        </div>
-
-
-        <!-- ★ 新機能 1: カメラオーバーレイ ★ -->
+        <!-- カメラ -->
         <div id="camera-overlay">
             <video id="webcam-video" autoplay playsinline></video>
             <div id="camera-ui-layer">
-                <div class="cam-controls">
-                    <div class="cam-shutter" title="撮影（飾り）"></div>
-                </div>
+                <div class="cam-controls"><div class="cam-shutter"></div></div>
                 <div class="cam-close" id="close-camera-btn">キャンセル</div>
             </div>
         </div>
 
-        <!-- ★ 新機能 2: 色選択パレット ★ -->
+        <!-- 色選択 -->
         <div id="color-picker-overlay">
             <div class="color-grid">
                 <div class="color-opt c-pink" onclick="openEditor('#ffcdd2')"></div>
@@ -390,17 +244,12 @@
             </div>
         </div>
 
-        <!-- ★ 新機能 3: カードエディタ ★ -->
+        <!-- カードエディタ -->
         <div id="card-editor-overlay">
             <div class="editor-toolbar">
                 <div class="editor-back-btn" onclick="closeEditor()">←</div>
-                <!-- ツール類 -->
                 <div class="editor-tools-center">
-                    <div class="et-icon">👆</div>
-                    <div class="et-icon">🖊️</div>
-                    <div class="et-icon active">あ</div>
-                    <div class="et-icon">🎤</div>
-                    <div class="et-icon">⏹️</div>
+                    <div class="et-icon">👆</div><div class="et-icon">🖊️</div><div class="et-icon active">あ</div><div class="et-icon">🎤</div><div class="et-icon">⏹️</div>
                 </div>
                 <div style="display:flex; gap:10px;">
                     <div class="et-icon">...</div>
@@ -415,375 +264,112 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, getDocs, deleteDoc } 
-        from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-
-        // Firebase設定
-        const firebaseConfig = {
-          apiKey: "AIzaSyC9UgkUd62D79QfweQA1i0akH04kxwItD4",
-          authDomain: "newchat-90c71.firebaseapp.com",
-          projectId: "newchat-90c71",
-          storageBucket: "newchat-90c71.firebasestorage.app",
-          messagingSenderId: "633675964296",
-          appId: "1:633675964296:web:89ea68a0c7de516a29a43d",
-          measurementId: "G-7SM0B9KDXE"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // --- 変数 ---
         let currentStream = null;
         let selectedColor = '#ffcdd2';
 
-        // --- 画面切り替え ---
         window.goToEditMode = function() {
             document.getElementById('view-list').style.display = 'none';
             document.getElementById('view-edit').style.display = 'block';
         };
-
         window.goToListMode = function() {
             document.getElementById('view-edit').style.display = 'none';
             document.getElementById('view-list').style.display = 'flex';
             toggleChat(false);
-            toggleAI(false); // AIも閉じる
             closeCamera();
             closeColorPicker();
             closeEditor();
         };
 
-        // --- 基本UI要素 ---
-        const toggleBtn = document.getElementById("toggle-chat-btn");
-        const chatOverlay = document.getElementById("chat-overlay");
-        const closeX = document.getElementById("close-chat-x");
-        const nameDisplay = document.getElementById("user-name-display");
-        const currentNameSpan = document.getElementById("current-name");
-        const dateSpan = document.getElementById("current-date");
-        const msgList = document.getElementById("msg-list");
-        const chatInput = document.getElementById("chat-input");
-        const sendBtn = document.getElementById("send-btn");
-        const fileInput = document.getElementById("file-input");
-        const loadingBar = document.getElementById("loading-indicator");
-        const trashBtn = document.getElementById("trash-btn");
-        const nameRefs = document.querySelectorAll(".display-name-ref");
-
-        // 日付・名前設定
         const now = new Date();
-        dateSpan.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日のノート`;
+        document.getElementById("current-date").textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日のノート`;
+        
         let myName = localStorage.getItem('loilo_v2_name') || "ここに名前を入力";
-        currentNameSpan.textContent = myName;
-        nameRefs.forEach(el => el.textContent = myName);
+        document.getElementById("current-name").textContent = myName;
+        document.querySelectorAll(".display-name-ref").forEach(el => el.textContent = myName);
 
-        nameDisplay.addEventListener('click', () => {
+        document.getElementById("user-name-display").addEventListener('click', () => {
             const newName = prompt("表示名を変更:", myName);
             if(newName && newName.trim() !== ""){
                 myName = newName; 
-                currentNameSpan.textContent = myName; 
+                document.getElementById("current-name").textContent = myName; 
                 localStorage.setItem('loilo_v2_name', myName);
-                nameRefs.forEach(el => el.textContent = myName);
+                document.querySelectorAll(".display-name-ref").forEach(el => el.textContent = myName);
             }
         });
-        const myUid = localStorage.getItem('loilo_v2_uid') || Math.random().toString(36).substring(7);
-        localStorage.setItem('loilo_v2_uid', myUid);
 
-        // --- チャット（提出箱）ロジック ---
-        function toggleChat(forceState) {
-            let isChatOpen = (chatOverlay.style.display === "flex");
-            if (forceState !== undefined) isChatOpen = !forceState; 
-            
-            if (forceState === true) {
-                chatOverlay.style.display = "flex";
-                msgList.scrollTop = msgList.scrollHeight;
-            } else if (forceState === false) {
-                chatOverlay.style.display = "none";
-            } else {
-                chatOverlay.style.display = (chatOverlay.style.display === "flex") ? "none" : "flex";
-                if (chatOverlay.style.display === "flex") msgList.scrollTop = msgList.scrollHeight;
-            }
-        }
-        toggleBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleChat(); });
-        closeX.addEventListener("click", () => toggleChat(false));
-
-        // --- 画像圧縮・送信 ---
-        function compressImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800;
-                        const scaleSize = MAX_WIDTH / img.width;
-                        canvas.width = MAX_WIDTH;
-                        canvas.height = img.height * scaleSize;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.5));
-                    };
-                    img.onerror = (error) => reject(error);
-                };
-            });
-        }
-
-        async function sendPayload(text = "", file = null) {
-            if (!text && !file) return;
-            loadingBar.style.display = "block";
-            let imageUrl = null;
-            try {
-                if (file) {
-                    imageUrl = await compressImage(file);
-                }
-                await addDoc(collection(db, "fake_loilo_v2"), {
-                    text: text, imageUrl: imageUrl, name: myName, uid: myUid, createdAt: serverTimestamp(), readBy: []
-                });
-                chatInput.value = "";
-            } catch (e) {
-                console.error(e);
-                alert("送信エラー");
-            } finally {
-                loadingBar.style.display = "none";
-            }
-        }
-
-        sendBtn.addEventListener("click", () => sendPayload(chatInput.value));
-        chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendPayload(chatInput.value); });
-        
-        fileInput.addEventListener("change", async (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            sendPayload("", file); fileInput.value = "";
-        });
-
-        // --- 全消去 ---
-        trashBtn.addEventListener("dblclick", async () => {
-            if (!confirm("全データを削除しますか？")) return;
-            loadingBar.style.display = "block";
-            try {
-                const q = query(collection(db, "fake_loilo_v2"));
-                const querySnapshot = await getDocs(q);
-                const deletePromises = [];
-                querySnapshot.forEach((doc) => { deletePromises.push(deleteDoc(doc.ref)); });
-                await Promise.all(deletePromises);
-                alert("削除しました");
-            } catch (e) { alert("削除エラー"); } finally { loadingBar.style.display = "none"; }
-        });
-
-        // --- 受信 ---
-        const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
-        onSnapshot(q, (snapshot) => {
-            msgList.innerHTML = "";
-            snapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                if (data.uid !== myUid && (!data.readBy || !data.readBy.includes(myUid))) {
-                    try { updateDoc(doc(db, "fake_loilo_v2", docSnap.id), { readBy: arrayUnion(myUid) }); } catch(e){}
-                }
-                const wrapper = document.createElement("div"); wrapper.classList.add("msg-wrapper");
-                const div = document.createElement("div"); div.classList.add("msg-card");
-                if (data.uid === myUid) { wrapper.classList.add("wrapper-mine"); div.classList.add("msg-mine"); } else { wrapper.classList.add("wrapper-other"); div.classList.add("msg-other"); }
-                let contentHtml = "";
-                if (data.imageUrl) contentHtml += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
-                if (data.text) contentHtml += `<div>${escapeHtml(data.text)}</div>`;
-                div.innerHTML = `<div class="msg-name">${escapeHtml(data.name)}</div><div class="msg-content">${contentHtml}</div>`;
-                wrapper.appendChild(div);
-                if (data.uid === myUid && data.readBy && data.readBy.length > 0) {
-                    const readLabel = document.createElement("div"); readLabel.classList.add("read-label"); readLabel.textContent = "既読"; wrapper.appendChild(readLabel);
-                }
-                msgList.appendChild(wrapper);
-            });
-            msgList.scrollTop = msgList.scrollHeight;
-        });
-
-        // ===============================================
-        // ★ 新機能ロジック ★
-        // ===============================================
-
-        // 1. カメラ機能
+        // カメラ
         const btnCamera = document.getElementById("btn-camera");
-        const cameraOverlay = document.getElementById("camera-overlay");
+        const camOverlay = document.getElementById("camera-overlay");
+        const camClose = document.getElementById("close-camera-btn");
         const videoEl = document.getElementById("webcam-video");
-        const closeCameraBtn = document.getElementById("close-camera-btn");
 
         btnCamera.addEventListener("click", async () => {
-            cameraOverlay.style.display = "flex";
+            camOverlay.style.display = "flex";
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoEl.srcObject = stream;
-                currentStream = stream;
-            } catch (err) {
-                alert("カメラの起動に失敗しました: " + err);
-                cameraOverlay.style.display = "none";
-            }
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoEl.srcObject = currentStream;
+            } catch(e) { alert("カメラ起動失敗"); camOverlay.style.display = "none"; }
+        });
+        function closeCamera() {
+            camOverlay.style.display = "none";
+            if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); currentStream = null; }
+        }
+        camClose.addEventListener("click", closeCamera);
+
+        // 提出箱（チャット）
+        const toggleChatBtn = document.getElementById("toggle-chat-btn");
+        const chatOverlay = document.getElementById("chat-overlay");
+        const closeChatX = document.getElementById("close-chat-x");
+        const chatInput = document.getElementById("chat-input");
+        const sendBtn = document.getElementById("send-btn");
+        const msgList = document.getElementById("msg-list");
+
+        function toggleChat(force) {
+            let show = (chatOverlay.style.display === "flex");
+            if(force !== undefined) show = !force;
+            chatOverlay.style.display = show ? "none" : "flex";
+        }
+        toggleChatBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleChat(); });
+        closeChatX.addEventListener("click", () => toggleChat(false));
+
+        sendBtn.addEventListener("click", () => {
+            if(!chatInput.value.trim()) return;
+            const div = document.createElement("div");
+            div.classList.add("msg-wrapper", "wrapper-mine");
+            div.innerHTML = `<div class="msg-card msg-mine">${escapeHtml(chatInput.value)}</div>`;
+            msgList.appendChild(div);
+            chatInput.value = "";
         });
 
-        function closeCamera() {
-            cameraOverlay.style.display = "none";
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
-        }
-        closeCameraBtn.addEventListener("click", closeCamera);
-
-
-        // 2. テキスト機能 & AI機能
+        // ツール関連
         const btnText = document.getElementById("btn-text");
         const colorPicker = document.getElementById("color-picker-overlay");
         const cardEditor = document.getElementById("card-editor-overlay");
         const cardTextarea = document.getElementById("card-textarea");
-        
-        // AI関連要素
-        const btnOpenAI = document.getElementById("btn-open-ai");
-        const aiOverlay = document.getElementById("ai-overlay");
-        const closeAIX = document.getElementById("close-ai-x");
-        const aiMsgList = document.getElementById("ai-msg-list");
-        const aiInput = document.getElementById("ai-input");
-        const aiSendBtn = document.getElementById("ai-send-btn");
 
-        // --- AIモードの制御 ---
-        function toggleAI(forceState) {
-            let isOpen = (aiOverlay.style.display === "flex");
-            if (forceState !== undefined) isOpen = !forceState;
-
-            if (!isOpen) {
-                aiOverlay.style.display = "flex";
-                aiInput.focus();
-            } else {
-                aiOverlay.style.display = "none";
-            }
-        }
-        
-        btnOpenAI.addEventListener("click", (e) => { e.stopPropagation(); toggleAI(true); });
-        closeAIX.addEventListener("click", () => toggleAI(false));
-
-        // ★★★ ここから「エラーが出ないハイブリッドAI」コード ★★★
-        async function sendToAI() {
-            const text = aiInput.value;
-            if(!text.trim()) return;
-
-            // 1. ユーザーのメッセージを表示
-            const userWrapper = document.createElement("div");
-            userWrapper.classList.add("msg-wrapper", "wrapper-mine");
-            userWrapper.innerHTML = `<div class="msg-card msg-user-ai">${escapeHtml(text)}</div>`;
-            aiMsgList.appendChild(userWrapper);
-            aiMsgList.scrollTop = aiMsgList.scrollHeight;
-            aiInput.value = "";
-
-            // 2. 「考え中...」を表示
-            const loadingDiv = document.createElement("div");
-            loadingDiv.classList.add("msg-wrapper", "wrapper-other");
-            loadingDiv.innerHTML = `<div class="msg-card msg-ai" style="color:#888;">AIが考え中...</div>`;
-            aiMsgList.appendChild(loadingDiv);
-            aiMsgList.scrollTop = aiMsgList.scrollHeight;
-
-            try {
-                // 本物のAPIキーを試す
-                const apiKey = "AIzaSyC2-3MhoExfJ49CRrowO86qhCPXvAFewFI"; 
-                
-                // 本物のAI (Gemini) にリクエスト
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: text }] }] })
-                });
-
-                if (!response.ok) {
-                    throw new Error("AI通信エラー: " + response.status);
-                }
-
-                const data = await response.json();
-                let aiText = "";
-                if (data.candidates && data.candidates[0].content) {
-                    aiText = data.candidates[0].content.parts[0].text;
-                } else {
-                    throw new Error("Empty response");
-                }
-
-                // 成功したら表示
-                aiMsgList.removeChild(loadingDiv);
-                displayAIResponse(aiText);
-
-            } catch (error) {
-                // ★失敗したら「賢い偽AI」に切り替え（エラー表示はしない！）
-                console.warn("Real AI failed, switching to fake mode:", error);
-                
-                // 少しだけ待ってから偽回答を表示
-                setTimeout(() => {
-                    if(loadingDiv.parentNode) aiMsgList.removeChild(loadingDiv);
-                    
-                    // 賢い偽回答ロジック
-                    let fakeResponse = "なるほど、それは鋭い視点ですね。教科書の次のページに関連することが載っているかもしれません。";
-                    
-                    if(text.includes("答え") || text.includes("教えて")) {
-                        fakeResponse = "答えを教えるのは簡単ですが、まずは自分の考えをノートにまとめてみましょう！";
-                    } else if(text.includes("こんにちは") || text.includes("hello")) {
-                        fakeResponse = "こんにちは！今日の学習の調子はどうですか？";
-                    } else if(text.includes("意味") || text.includes("とは")) {
-                        fakeResponse = "それは重要なキーワードですね。辞書で調べた意味と、自分の言葉での説明を比べてみましょう。";
-                    } else if(text.includes("ありがとう")) {
-                        fakeResponse = "どういたしまして！またいつでも質問してください。";
-                    } else if(text.length > 10) {
-                        fakeResponse = "非常に興味深い質問です。その件について、クラスのみんなはどう考えているでしょうか？";
-                    }
-
-                    displayAIResponse(fakeResponse);
-                }, 500);
-            }
-        }
-
-        function displayAIResponse(content) {
-            const aiWrapper = document.createElement("div");
-            aiWrapper.classList.add("msg-wrapper", "wrapper-other");
-            aiWrapper.innerHTML = `
-                <div class="msg-card msg-ai" style="display:flex; align-items:flex-start;">
-                    <div class="ai-avatar">AI</div>
-                    <div style="white-space: pre-wrap;">${escapeHtml(content)}</div>
-                </div>`;
-            aiMsgList.appendChild(aiWrapper);
-            aiMsgList.scrollTop = aiMsgList.scrollHeight;
-        }
-        // ★★★ ここまで ★★★
-
-        aiSendBtn.addEventListener("click", sendToAI);
-        aiInput.addEventListener("keypress", (e) => { if(e.key === "Enter") sendToAI(); });
-
-
-        // --- カードエディタ関連 ---
-        btnText.addEventListener("click", (e) => {
-            e.stopPropagation();
-            colorPicker.style.display = (colorPicker.style.display === "block") ? "none" : "block";
-        });
-        
-        window.openEditor = function(color) {
-            selectedColor = color;
+        btnText.addEventListener("click", (e) => { e.stopPropagation(); colorPicker.style.display = "block"; });
+        window.openEditor = function(c) {
+            selectedColor = c;
             colorPicker.style.display = "none";
-            cardEditor.style.background = color;
-            if (color === "#000" || color === "#222" || color === "#1565c0" || color === "#00897b") {
-                cardTextarea.style.color = "#fff";
-            } else {
-                cardTextarea.style.color = "#333";
-            }
+            cardEditor.style.background = c;
             cardEditor.style.display = "flex";
             cardTextarea.value = "";
             cardTextarea.focus();
-        };
-
-        window.closeColorPicker = function() { colorPicker.style.display = "none"; };
-        window.closeEditor = function() { cardEditor.style.display = "none"; };
-
-        window.sendCardFromEditor = async function() {
-            const text = cardTextarea.value;
-            if (!text.trim()) return;
+        }
+        window.closeEditor = function() { cardEditor.style.display = "none"; }
+        window.closeColorPicker = function() { colorPicker.style.display = "none"; }
+        window.sendCardFromEditor = function() {
+            if(!cardTextarea.value.trim()) return;
             closeEditor();
             toggleChat(true);
-            sendPayload(text);
-        };
+            const div = document.createElement("div");
+            div.classList.add("msg-wrapper", "wrapper-mine");
+            div.innerHTML = `<div class="msg-card msg-mine" style="background:${selectedColor}">${escapeHtml(cardTextarea.value)}</div>`;
+            msgList.appendChild(div);
+        }
 
         document.body.addEventListener("click", (e) => {
-            if (!colorPicker.contains(e.target) && !btnText.contains(e.target)) {
-                closeColorPicker();
-            }
+            if(!colorPicker.contains(e.target) && !btnText.contains(e.target)) closeColorPicker();
         });
 
         function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
