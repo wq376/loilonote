@@ -107,8 +107,7 @@
            ★ ユーザーメニュー（ドロップダウン形式）
            ---------------------------------------------------- */
         .user-menu-dropdown {
-            position: fixed; /* 固定位置に変更 */
-            top: 60px; right: 20px; 
+            position: fixed; top: 60px; right: 20px; 
             background: #fff; color: #333;
             border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             width: 320px; display: none; z-index: 9999;
@@ -116,16 +115,12 @@
             font-family: "BIZ UDGothic", sans-serif;
             text-align: center;
         }
-        .menu-header-info {
-            padding: 20px; border-bottom: 1px solid #eee; background: #fcfcfc;
-        }
+        .menu-header-info { padding: 20px; border-bottom: 1px solid #eee; background: #fcfcfc; }
         .p-school { font-size: 0.9rem; color: #555; margin-bottom: 8px; }
         .p-id { font-size: 1rem; color: #666; margin-bottom: 8px; font-family: monospace; }
         .p-name { font-size: 1.4rem; font-weight: bold; color: #333; }
         
-        .profile-menu-item {
-            padding: 15px 0; border-bottom: 1px solid #eee; color: #007aff; font-weight: bold; cursor: pointer; transition: background 0.1s;
-        }
+        .profile-menu-item { padding: 15px 0; border-bottom: 1px solid #eee; color: #007aff; font-weight: bold; cursor: pointer; transition: background 0.1s; }
         .profile-menu-item:hover { background: #f0f8ff; }
         .profile-menu-item:last-child { border-bottom: none; }
         .sub-status { font-size: 0.7rem; color: #f00; font-weight: normal; margin-top: 3px; }
@@ -264,17 +259,16 @@
         </div>
     </div>
 
-<!-- 画面0.7: 管理者パネル -->
+    <!-- 画面0.7: 管理者パネル -->
     <div id="view-admin-panel">
         <div class="admin-header"><span>ユーザーアクセス管理</span><span class="admin-close-btn" onclick="closeAdminPanel()">閉じる</span></div>
         
-        <!-- ▼▼▼ ここに追加 ▼▼▼ -->
+        <!-- 履歴全消去ボタン -->
         <div style="padding: 20px; text-align: center; border-bottom: 1px solid #eee;">
             <button id="admin-delete-all-btn" style="background: #ff3b30; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                 ⚠ チャット履歴を全消去
             </button>
         </div>
-        <!-- ▲▲▲ ここまで ▲▲▲ -->
 
         <div class="admin-content" id="admin-user-list"></div>
     </div>
@@ -434,7 +428,7 @@
                 <div class="settings-group"><div class="settings-row"><span>テキストの読み上げ</span><span style="color:#ccc;">></span></div></div>
                 <div class="settings-section-title">試験中の機能</div>
                 <div class="settings-group"><div class="settings-row"><span>キーボード操作</span><label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label></div></div>
-                <div class="version-text">バージョン v2.35</div>
+                <div class="version-text">バージョン v2.81</div>
                 <div class="version-text">アプリについて</div>
             </div>
         </div>
@@ -442,7 +436,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, getDocs, deleteDoc } 
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, getDocs, deleteDoc, setDoc } 
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         // Firebase設定
@@ -469,17 +463,11 @@
             "sample12": "サンプル1",
             "sample25": "サンプル2",
             "sample726": "サンプル3",
-            "admin": "管理者用アカウント",
-            "testuser": "テストユーザー"
+            "admin": "管理者アカウント",
+            "testuser": "テストユーザー",
+            "student1": "生徒１",
         };
         const ADMIN_PASS = ["1726", "admin"];
-
-        // パーミッション管理
-        const PERM_KEY = "loilo_fake_permissions";
-        let permissions = JSON.parse(localStorage.getItem(PERM_KEY)) || {};
-        for (let id in USERS) { if (permissions[id] === undefined) permissions[id] = true; }
-        localStorage.setItem(PERM_KEY, JSON.stringify(permissions));
-        function savePermissions() { localStorage.setItem(PERM_KEY, JSON.stringify(permissions)); }
 
         // 変数
         let currentStream = null;
@@ -500,7 +488,7 @@
 
         const headerUserArea = document.getElementById("header-user-area");
         const editUserArea = document.getElementById("user-name-display");
-        const userMenu = document.getElementById("user-menu-dropdown"); // ドロップダウン
+        const userMenu = document.getElementById("user-menu-dropdown");
         const pUserId = document.getElementById("p-user-id");
         const pUserRealName = document.getElementById("p-user-realname");
 
@@ -513,7 +501,7 @@
             viewAdminLogin.style.display = "none"; 
             if (currentLoginId) {
                 if (viewEdit.style.display === "block") {
-                    // nop (stay in edit view)
+                    // nop 
                 } else {
                     viewList.style.display = "flex"; 
                 }
@@ -532,7 +520,7 @@
             document.getElementById("admin-pass-input").value = "";
             if (currentLoginId) {
                 if (viewEdit.style.display === "block") {
-                    // 編集画面維持
+                    // edit
                 } else {
                     viewList.style.display = "flex";
                 }
@@ -548,15 +536,18 @@
         document.getElementById("user-login-btn").addEventListener("click", performUserLogin);
         document.getElementById("user-pass-input").addEventListener("keypress", (e) => { if(e.key === "Enter") performUserLogin(); });
 
-        function performUserLogin() {
+        async function performUserLogin() {
             const val = document.getElementById("user-pass-input").value;
             if (USERS[val]) {
-                if (permissions[val] === false) {
-                    document.getElementById("user-login-error").textContent = "このアカウントはロックされています";
-                    return;
-                }
+                // Firebaseから権限チェック（初回ログイン時）
+                // ただしリアルタイム監視はログイン後に行うため、ここでは簡易チェックも可だが、
+                // 一旦通してリアルタイム監視で弾くのが確実。
                 realName = USERS[val];
                 currentLoginId = val;
+                
+                // リアルタイム監視開始
+                startPermissionListener(val);
+
                 viewUserLogin.style.display = "none";
                 viewList.style.display = "flex";
                 updateNameDisplay();
@@ -564,6 +555,20 @@
                 document.getElementById("user-login-error").textContent = "パスワードが違います";
                 document.getElementById("user-pass-input").value = "";
             }
+        }
+
+        // ▼▼▼ Firebase権限監視 ▼▼▼
+        function startPermissionListener(loginId) {
+            onSnapshot(doc(db, "config", "permissions"), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    // false (禁止) になっていたら強制排除
+                    if (data[loginId] === false) {
+                        alert("このアカウントでのログインは禁止されています。\n再読み込みしてください。");
+                        location.reload(); 
+                    }
+                }
+            });
         }
 
         // 名前更新
@@ -581,22 +586,12 @@
             pUserRealName.textContent = realName;
         }
 
-        // --- ユーザーメニュー（ドロップダウン）制御 ---
+        // --- ユーザーメニュー ---
         headerUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
         editUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
-        
-        function toggleUserMenu() {
-            const isVisible = userMenu.style.display === 'block';
-            userMenu.style.display = isVisible ? 'none' : 'block';
-        }
-        
-        // 画面のどこかをクリックしたらメニューを閉じる
-        document.addEventListener('click', () => {
-            userMenu.style.display = 'none';
-        });
-        // メニュー内部クリックは閉じない
+        function toggleUserMenu() { const isVisible = userMenu.style.display === 'block'; userMenu.style.display = isVisible ? 'none' : 'block'; }
+        document.addEventListener('click', () => { userMenu.style.display = 'none'; });
         userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
-
 
         window.changeNameAction = function() {
             userMenu.style.display = 'none';
@@ -605,25 +600,16 @@
                 myName = newName; localStorage.setItem('loilo_v2_name', myName); updateNameDisplay();
             }
         };
-        
         window.openSettings = function() { userMenu.style.display = 'none'; viewSettings.style.display = "flex"; };
         window.closeSettings = function() { viewSettings.style.display = "none"; };
-        
         window.goToAdminLoginFromMenu = function() {
             userMenu.style.display = 'none';
-            // 現在の画面を非表示にして管理者ログイン画面へ
-            viewList.style.display = 'none'; 
-            // viewEditをここで非表示にすると復帰が面倒なので、z-indexで上書きするが
-            // 今回の構造上、display:noneにする必要がある
-            // ただし、戻るときに状態を知る必要があるため、currentLoginIdで判定する
-            viewEdit.style.display = 'none'; 
-            viewAdminLogin.style.display = 'flex';
+            viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex';
         }
 
         // 管理者ログイン
         document.getElementById("admin-login-btn").addEventListener("click", performAdminLogin);
         function performAdminLogin() {
-            // 入力されたパスワードがリストの中に含まれているか？
             if (ADMIN_PASS.includes(document.getElementById("admin-pass-input").value)) {
                 viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; renderAdminList();
             } else { document.getElementById("admin-login-error").textContent = "パスワードが違います"; }
@@ -632,24 +618,67 @@
         window.closeAdminPanel = function() { 
             viewAdminPanel.style.display = "none"; 
             document.getElementById("admin-pass-input").value = "";
-            if(currentLoginId) {
-                // ログイン中なら一覧に戻す（簡易的）
-                // 編集画面から来た場合でも一覧に戻るのは仕様とする
-                viewList.style.display = "flex"; 
-            } else {
-                viewPortal.style.display = "flex"; 
-            }
+            if(currentLoginId) { viewList.style.display = "flex"; } else { viewPortal.style.display = "flex"; }
         };
 
-        function renderAdminList() {
-            const listDiv = document.getElementById("admin-user-list"); listDiv.innerHTML = "";
-            for (let id in USERS) {
-                const row = document.createElement("div"); row.className = "user-control-row";
-                row.innerHTML = `<div class="user-info-admin">${USERS[id]} (${id})</div><div style="display:flex; align-items:center;"><label class="toggle-switch"><input type="checkbox" ${permissions[id]?"checked":""} onchange="togglePermission('${id}', this)"><span class="slider"></span></label><span class="status-label">${permissions[id]?"許可":"禁止"}</span></div>`;
-                listDiv.appendChild(row);
-            }
+        // ▼▼▼ 管理者リスト表示 (Firebase連動) ▼▼▼
+        async function renderAdminList() {
+            const listDiv = document.getElementById("admin-user-list"); 
+            listDiv.innerHTML = "読み込み中...";
+            
+            // Firebaseから最新の権限情報を取得
+            let currentPerms = {};
+            try {
+                const docSnap = await getDocs(query(collection(db, "config"))); 
+                // configコレクション内のpermissionsドキュメントを探す（なければ空）
+                // 簡略化のため、直接doc参照
+                /* 
+                   Firestoreの構造上、ドキュメントを特定する必要がある。
+                   ここでは 'config/permissions' というパスを使用。
+                */
+            } catch(e) {}
+            
+            // リアルタイムリスナーを使って取得・描画する方が簡単
+            onSnapshot(doc(db, "config", "permissions"), (docSnap) => {
+                listDiv.innerHTML = "";
+                const serverData = docSnap.exists() ? docSnap.data() : {};
+                
+                for (let id in USERS) {
+                    if (id.startsWith("admin") || id === "testuser" && !USERS[id]) continue; // 除外処理
+
+                    const name = USERS[id];
+                    // サーバーにデータがない場合は true (許可) とみなす
+                    const isAllowed = (serverData[id] === undefined) ? true : serverData[id];
+                    
+                    const row = document.createElement("div"); row.className = "user-control-row";
+                    row.innerHTML = `
+                        <div class="user-info-admin">${name} (${id})</div>
+                        <div style="display:flex; align-items:center;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${isAllowed ? "checked" : ""} onchange="togglePermission('${id}', this)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="status-label">${isAllowed ? "許可" : "禁止"}</span>
+                        </div>
+                    `;
+                    listDiv.appendChild(row);
+                }
+            });
         }
-        window.togglePermission = function(id, cb) { permissions[id] = cb.checked; savePermissions(); cb.parentElement.nextElementSibling.textContent = permissions[id]?"許可":"禁止"; };
+
+        // ▼▼▼ 権限切り替え (Firebase書き込み) ▼▼▼
+        window.togglePermission = async function(id, checkbox) {
+            const isAllowed = checkbox.checked;
+            checkbox.parentElement.nextElementSibling.textContent = isAllowed ? "許可" : "禁止";
+            
+            try {
+                await setDoc(doc(db, "config", "permissions"), {
+                    [id]: isAllowed
+                }, { merge: true });
+            } catch(e) {
+                alert("設定の保存に失敗: " + e.message);
+            }
+        };
 
         // チャット & Firebase
         const chatOverlay = document.getElementById("chat-overlay");
@@ -677,7 +706,6 @@
             if(!text && !file) return;
             let imageUrl = null;
             if(file) {
-                // 簡易圧縮
                 imageUrl = await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(file);});
             }
             const payload = { text, imageUrl, name: `${myName}・${realName}`, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
@@ -715,38 +743,29 @@
             msgList.scrollTop = msgList.scrollHeight;
         });
 
-        // ツール類 (カメラ、エディタ)
+        // ツール類
         const btnText = document.getElementById("btn-text");
         const colorPicker = document.getElementById("color-picker-overlay");
         const cardEditor = document.getElementById("card-editor-overlay");
         const cardTextarea = document.getElementById("card-textarea");
         
-        // カメラ機能の修正 (確実に動作するように)
+        // カメラ機能
         const btnCamera = document.getElementById("btn-camera");
         const cameraOverlay = document.getElementById("camera-overlay");
         const videoEl = document.getElementById("webcam-video");
         const closeCameraBtn = document.getElementById("close-camera-btn");
-
         btnCamera.addEventListener("click", async () => {
             cameraOverlay.style.display = "flex";
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
                 videoEl.srcObject = currentStream;
-            } catch (err) {
-                alert("カメラの起動に失敗しました: " + err);
-                cameraOverlay.style.display = "none";
-            }
+            } catch (err) { alert("カメラ起動エラー"); cameraOverlay.style.display = "none"; }
         });
-
         window.closeCamera = function() {
             cameraOverlay.style.display = "none";
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
+            if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
         };
         closeCameraBtn.addEventListener("click", closeCamera);
-
 
         btnText.addEventListener("click", (e) => { e.stopPropagation(); colorPicker.style.display = "block"; });
         window.openEditor = function(c) { selectedColor=c; colorPicker.style.display="none"; cardEditor.style.background=c; cardEditor.style.display="flex"; cardTextarea.value=""; cardTextarea.focus(); };
@@ -755,54 +774,32 @@
         document.body.addEventListener("click", (e) => { if(!colorPicker.contains(e.target)&&!btnText.contains(e.target)) colorPicker.style.display="none"; });
 
         // --- 全消去 (Trash Bin) ---
-// --- 管理者用：履歴全消去ボタン ---
-        document.getElementById("admin-delete-all-btn").addEventListener("click", async () => {
-            if (!confirm("【警告】\nすべてのチャット履歴と画像を削除します。\n本当によろしいですか？")) return;
-            
-            // 念のためもう一度確認
-            if (!confirm("削除されたデータは復元できません。\n実行しますか？")) return;
-
-            loadingBar.style.display = "block";
-            try {
-                // コレクション内の全ドキュメントを取得
-                const q = query(collection(db, "fake_loilo_v2"));
-                const querySnapshot = await getDocs(q);
-                
-                // 一括削除処理
-                const deletePromises = [];
-                querySnapshot.forEach((document) => {
-                    deletePromises.push(deleteDoc(document.ref));
-                });
-                await Promise.all(deletePromises);
-                
-                alert("履歴を全消去しました。");
-            } catch (e) {
-                console.error(e);
-                alert("削除エラー: " + e.message);
-            } finally {
-                loadingBar.style.display = "none";
-            }
-        });
-
-        // 既存のゴミ箱ダブルクリック削除機能
+        const trashBtn = document.getElementById("trash-btn");
         trashBtn.addEventListener("dblclick", async () => {
             if (!confirm("全データを削除しますか？")) return;
-            loadingBar.style.display = "block";
+            // loadingBar.style.display = "block"; // エラー回避のためコメントアウト（loadingBar変数がスコープ外の可能性あり）
             try {
                 const q = query(collection(db, "fake_loilo_v2"));
                 const querySnapshot = await getDocs(q);
                 const deletePromises = [];
-                querySnapshot.forEach((document) => {
-                    deletePromises.push(deleteDoc(document.ref));
-                });
+                querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); });
                 await Promise.all(deletePromises);
                 alert("削除しました");
-            } catch (e) {
-                console.error(e);
-                alert("削除エラー: " + e.message);
-            } finally {
-                loadingBar.style.display = "none";
-            }
+            } catch (e) { alert("削除エラー: " + e.message); }
+        });
+
+        // --- 管理者用：履歴全消去ボタン ---
+        document.getElementById("admin-delete-all-btn").addEventListener("click", async () => {
+            if (!confirm("【警告】\nすべてのチャット履歴と画像を削除します。\n本当によろしいですか？")) return;
+            if (!confirm("削除されたデータは復元できません。\n実行しますか？")) return;
+            try {
+                const q = query(collection(db, "fake_loilo_v2"));
+                const querySnapshot = await getDocs(q);
+                const deletePromises = [];
+                querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); });
+                await Promise.all(deletePromises);
+                alert("履歴を全消去しました。");
+            } catch (e) { alert("削除エラー: " + e.message); }
         });
 
         function escapeHtml(str) { if(!str)return""; return str.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
