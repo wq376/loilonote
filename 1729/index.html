@@ -107,7 +107,8 @@
            ★ ユーザーメニュー（ドロップダウン形式）
            ---------------------------------------------------- */
         .user-menu-dropdown {
-            position: fixed; top: 60px; right: 20px; 
+            position: fixed; /* 固定位置に変更 */
+            top: 60px; right: 20px; 
             background: #fff; color: #333;
             border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             width: 320px; display: none; z-index: 9999;
@@ -115,12 +116,16 @@
             font-family: "BIZ UDGothic", sans-serif;
             text-align: center;
         }
-        .menu-header-info { padding: 20px; border-bottom: 1px solid #eee; background: #fcfcfc; }
+        .menu-header-info {
+            padding: 20px; border-bottom: 1px solid #eee; background: #fcfcfc;
+        }
         .p-school { font-size: 0.9rem; color: #555; margin-bottom: 8px; }
         .p-id { font-size: 1rem; color: #666; margin-bottom: 8px; font-family: monospace; }
         .p-name { font-size: 1.4rem; font-weight: bold; color: #333; }
         
-        .profile-menu-item { padding: 15px 0; border-bottom: 1px solid #eee; color: #007aff; font-weight: bold; cursor: pointer; transition: background 0.1s; }
+        .profile-menu-item {
+            padding: 15px 0; border-bottom: 1px solid #eee; color: #007aff; font-weight: bold; cursor: pointer; transition: background 0.1s;
+        }
         .profile-menu-item:hover { background: #f0f8ff; }
         .profile-menu-item:last-child { border-bottom: none; }
         .sub-status { font-size: 0.7rem; color: #f00; font-weight: normal; margin-top: 3px; }
@@ -184,6 +189,9 @@
         #send-btn { background: #007aff; color: #fff; font-weight: bold; padding: 0 20px; border:none; height:44px; border-radius:8px;}
         #loading-indicator { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #007aff; animation: load 1s infinite linear; display: none; z-index: 300; }
         @keyframes load { 0% { width: 0%; left: 0; } 50% { width: 50%; left: 25%; } 100% { width: 100%; left: 100%; } }
+
+        /* 既読ラベル */
+        .read-label { font-size: 0.7rem; color: #888; margin-top: 2px; font-weight: bold; text-align: right; }
 
         /* 管理者パネル */
         #view-admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 3000; display: none; flex-direction: column; color: #333; }
@@ -262,14 +270,11 @@
     <!-- 画面0.7: 管理者パネル -->
     <div id="view-admin-panel">
         <div class="admin-header"><span>ユーザーアクセス管理</span><span class="admin-close-btn" onclick="closeAdminPanel()">閉じる</span></div>
-        
-        <!-- 履歴全消去ボタン -->
         <div style="padding: 20px; text-align: center; border-bottom: 1px solid #eee;">
             <button id="admin-delete-all-btn" style="background: #ff3b30; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                 ⚠ チャット履歴を全消去
             </button>
         </div>
-
         <div class="admin-content" id="admin-user-list"></div>
     </div>
 
@@ -428,7 +433,7 @@
                 <div class="settings-group"><div class="settings-row"><span>テキストの読み上げ</span><span style="color:#ccc;">></span></div></div>
                 <div class="settings-section-title">試験中の機能</div>
                 <div class="settings-group"><div class="settings-row"><span>キーボード操作</span><label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label></div></div>
-                <div class="version-text">バージョン v2.81</div>
+                <div class="version-text">バージョン v2.35</div>
                 <div class="version-text">アプリについて</div>
             </div>
         </div>
@@ -465,9 +470,16 @@
             "sample726": "サンプル3",
             "admin": "管理者アカウント",
             "testuser": "テストユーザー",
-            "student1": "生徒１",
+            "student1": "生徒1"
         };
         const ADMIN_PASS = ["1726", "admin"];
+
+        // パーミッション管理
+        const PERM_KEY = "loilo_fake_permissions";
+        let permissions = JSON.parse(localStorage.getItem(PERM_KEY)) || {};
+        for (let id in USERS) { if (permissions[id] === undefined) permissions[id] = true; }
+        localStorage.setItem(PERM_KEY, JSON.stringify(permissions));
+        function savePermissions() { localStorage.setItem(PERM_KEY, JSON.stringify(permissions)); }
 
         // 変数
         let currentStream = null;
@@ -501,7 +513,7 @@
             viewAdminLogin.style.display = "none"; 
             if (currentLoginId) {
                 if (viewEdit.style.display === "block") {
-                    // nop 
+                    // nop (stay in edit view)
                 } else {
                     viewList.style.display = "flex"; 
                 }
@@ -520,7 +532,7 @@
             document.getElementById("admin-pass-input").value = "";
             if (currentLoginId) {
                 if (viewEdit.style.display === "block") {
-                    // edit
+                    // 編集画面維持
                 } else {
                     viewList.style.display = "flex";
                 }
@@ -564,7 +576,7 @@
                     const data = docSnap.data();
                     // false (禁止) になっていたら強制排除
                     if (data[loginId] === false) {
-                        alert("このアカウントでのログインは禁止されています。\n再読み込みしてください。");
+                        alert("セッションの有効期限が切れました。\n再読み込みしてください。");
                         location.reload(); 
                     }
                 }
@@ -586,12 +598,22 @@
             pUserRealName.textContent = realName;
         }
 
-        // --- ユーザーメニュー ---
+        // --- ユーザーメニュー（ドロップダウン）制御 ---
         headerUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
         editUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
-        function toggleUserMenu() { const isVisible = userMenu.style.display === 'block'; userMenu.style.display = isVisible ? 'none' : 'block'; }
-        document.addEventListener('click', () => { userMenu.style.display = 'none'; });
+        
+        function toggleUserMenu() {
+            const isVisible = userMenu.style.display === 'block';
+            userMenu.style.display = isVisible ? 'none' : 'block';
+        }
+        
+        // 画面のどこかをクリックしたらメニューを閉じる
+        document.addEventListener('click', () => {
+            userMenu.style.display = 'none';
+        });
+        // メニュー内部クリックは閉じない
         userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
+
 
         window.changeNameAction = function() {
             userMenu.style.display = 'none';
@@ -600,8 +622,10 @@
                 myName = newName; localStorage.setItem('loilo_v2_name', myName); updateNameDisplay();
             }
         };
+        
         window.openSettings = function() { userMenu.style.display = 'none'; viewSettings.style.display = "flex"; };
         window.closeSettings = function() { viewSettings.style.display = "none"; };
+        
         window.goToAdminLoginFromMenu = function() {
             userMenu.style.display = 'none';
             viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex';
@@ -625,18 +649,6 @@
         async function renderAdminList() {
             const listDiv = document.getElementById("admin-user-list"); 
             listDiv.innerHTML = "読み込み中...";
-            
-            // Firebaseから最新の権限情報を取得
-            let currentPerms = {};
-            try {
-                const docSnap = await getDocs(query(collection(db, "config"))); 
-                // configコレクション内のpermissionsドキュメントを探す（なければ空）
-                // 簡略化のため、直接doc参照
-                /* 
-                   Firestoreの構造上、ドキュメントを特定する必要がある。
-                   ここでは 'config/permissions' というパスを使用。
-                */
-            } catch(e) {}
             
             // リアルタイムリスナーを使って取得・描画する方が簡単
             onSnapshot(doc(db, "config", "permissions"), (docSnap) => {
@@ -708,6 +720,7 @@
             if(file) {
                 imageUrl = await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(file);});
             }
+            // ★ readBy: [] を追加して既読リストを初期化
             const payload = { text, imageUrl, name: `${myName}・${realName}`, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
             if(replyTargetId) payload.replyTo = replyTargetId;
             await addDoc(collection(db, "fake_loilo_v2"), payload);
@@ -722,23 +735,46 @@
         onSnapshot(q, (snap) => {
             msgList.innerHTML = ""; const idMap = {};
             snap.forEach(d => idMap[d.id] = d.data().text || "画像");
-            snap.forEach(d => {
-                const data = d.data();
-                const div = document.createElement("div"); div.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
-                const card = document.createElement("div"); card.className = "msg-card " + (data.uid===myUid?"msg-mine":"msg-other");
-                card.id = "msg-"+d.id;
-                card.addEventListener("dblclick", ()=>{ replyTargetId=d.id; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; });
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const docId = docSnap.id;
+
+                // ★既読処理: 他人のメッセージで、自分が未読なら追加
+                if (data.uid !== myUid && (!data.readBy || !data.readBy.includes(myUid))) {
+                    updateDoc(doc(db, "fake_loilo_v2", docId), {
+                        readBy: arrayUnion(myUid)
+                    });
+                }
+                
+                const wrapper = document.createElement("div"); 
+                wrapper.classList.add("msg-wrapper");
+                if (data.uid === myUid) wrapper.classList.add("wrapper-mine"); 
+                else wrapper.classList.add("wrapper-other"); 
+                
+                const card = document.createElement("div"); 
+                card.classList.add("msg-card");
+                if (data.uid === myUid) card.classList.add("msg-mine"); 
+                else card.classList.add("msg-other");
+                card.id = "msg-"+docId;
+                card.addEventListener("dblclick", ()=>{ replyTargetId=docId; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; chatInput.focus(); });
                 
                 let html = "";
                 if(data.replyTo && idMap[data.replyTo]) html += `<div class="reply-ref" onclick="document.getElementById('msg-${data.replyTo}').scrollIntoView({behavior:'smooth'});">↩ ${escapeHtml(idMap[data.replyTo])}</div>`;
                 if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
                 if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
                 card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)}</div><div class="msg-content">${html}</div>`;
-                div.appendChild(card);
-                if(data.uid===myUid && data.readBy && data.readBy.length>0) {
-                    const read = document.createElement("div"); read.className="read-label"; read.textContent="既読"; div.appendChild(read);
+                
+                wrapper.appendChild(card);
+                
+                // ★既読表示: 自分のメッセージで、誰かが読んでいれば表示
+                if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
+                    const read = document.createElement("div"); 
+                    read.className="read-label"; 
+                    read.textContent="既読"; 
+                    wrapper.appendChild(read);
                 }
-                msgList.appendChild(div);
+                
+                msgList.appendChild(wrapper);
             });
             msgList.scrollTop = msgList.scrollHeight;
         });
@@ -777,7 +813,6 @@
         const trashBtn = document.getElementById("trash-btn");
         trashBtn.addEventListener("dblclick", async () => {
             if (!confirm("全データを削除しますか？")) return;
-            // loadingBar.style.display = "block"; // エラー回避のためコメントアウト（loadingBar変数がスコープ外の可能性あり）
             try {
                 const q = query(collection(db, "fake_loilo_v2"));
                 const querySnapshot = await getDocs(q);
