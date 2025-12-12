@@ -457,9 +457,11 @@
             "1726": "田中大樹",
             "sample12": "サンプル1",
             "sample25": "サンプル2",
-            "sample726": "サンプル3"
+            "sample726": "サンプル3",
+            "admin": "管理者アカウント",
+            "test": "テストユーザー"
         };
-        const ADMIN_PASS = "1726";
+        const ADMIN_PASS = ["1726", "admin"];
 
         // パーミッション管理
         const PERM_KEY = "loilo_fake_permissions";
@@ -606,7 +608,8 @@
         // 管理者ログイン
         document.getElementById("admin-login-btn").addEventListener("click", performAdminLogin);
         function performAdminLogin() {
-            if (document.getElementById("admin-pass-input").value === ADMIN_PASS) {
+            // 入力されたパスワードがリストの中に含まれているか？
+            if (ADMIN_PASS.includes(document.getElementById("admin-pass-input").value)) {
                 viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; renderAdminList();
             } else { document.getElementById("admin-login-error").textContent = "パスワードが違います"; }
         }
