@@ -4,31 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="loilo.ico" type="image/x-icon">
-    <!-- UDフォント -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
-    
     <title>ロイロノート スクール</title>
     <style>
         /* --- ベース設定 --- */
-        body { margin: 0; padding: 0; font-family: "BIZ UDGothic", sans-serif; overflow: hidden; height: 100vh; user-select: none; color: #333; }
+        body { margin: 0; padding: 0; font-family: "BIZ UDGothic", sans-serif; overflow: hidden; height: 100vh; user-select: none; color: #333; background: #fff; }
+        input, button, textarea { font-family: "BIZ UDGothic", sans-serif; }
         
-        /* 画面1: ノート一覧画面 */
-        #view-list { display: flex; width: 100%; height: 100%; background-color: #fff; }
+        /* 共通オーバーレイ */
+        .overlay-screen { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: #12264d; z-index: 2500; 
+            display: none; flex-direction: column; justify-content: center; align-items: center; color: #fff;
+        }
+
+        /* --- 画面0: ポータル (ログイン画面) --- */
+        #view-portal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #12264d; z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff;
+        }
+        .portal-logo-img { max-width: 300px; height: auto; margin-bottom: 30px; }
+        .portal-btn {
+            background: #fff; color: #333; width: 320px; height: 50px; border-radius: 4px; margin-bottom: 15px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; font-size: 1rem;
+            border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: opacity 0.2s;
+        }
+        .portal-btn:hover { opacity: 0.9; }
+        .btn-icon-img { width: 24px; height: 24px; margin-right: 10px; object-fit: contain; }
+        .portal-links { margin-top: 10px; text-align: center; font-size: 0.9rem; }
+        .portal-links a { color: #fff; text-decoration: underline; cursor: pointer; display: block; margin-bottom: 8px; }
+        .portal-footer { margin-top: 40px; font-size: 0.8rem; opacity: 0.8; }
+        .portal-footer span { margin: 0 5px; cursor: pointer; }
+
+        /* 入力ボックス系 */
+        .login-box {
+            background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 16px; text-align: center;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+        }
+        .pass-input-field { padding: 10px; font-size: 1.2rem; border-radius: 8px; border: none; text-align: center; width: 200px; margin-bottom: 20px; }
+        .login-action-btn { padding: 10px 30px; font-size: 1.1rem; background: #007aff; color: #fff; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        .back-link { margin-top: 20px; color: #aaa; cursor: pointer; text-decoration: underline; font-size: 0.9rem; }
+        .login-error-msg { color: #ff6b6b; margin-top: 10px; font-weight: bold; min-height: 20px;}
+
+        /* --- 画面1: ノート一覧 --- */
+        #view-list { display: none; width: 100%; height: 100%; background-color: #fff; }
         .list-sidebar { width: 260px; background-color: #f5f5f7; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; padding-top: 20px; }
         .class-title { padding: 0 20px 15px 20px; font-weight: bold; color: #555; font-size: 1rem; }
         .subject-list { flex: 1; overflow-y: auto; padding: 0 10px; }
         .subject-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #333; font-size: 1rem; border-radius: 8px; transition: background 0.1s; }
         .subject-item:hover { background-color: rgba(0,0,0,0.05); }
         .subject-active { background-color: #fff; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .subject-menu-icon { color: #aaa; font-size: 1.2rem; font-weight: bold; }
         .sidebar-bottom { padding: 15px 20px; border-top: 1px solid #e0e0e0; background: #f5f5f7; }
         .bottom-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; font-size: 0.95rem; color: #444; font-weight: bold; }
         .bottom-item img { width: 24px; height: 24px; object-fit: contain; }
         .code-item { color: #0099ff; } 
         .list-main { flex: 1; display: flex; flex-direction: column; background: #fff; }
-        .list-header-top { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #eee; }
+        .list-header-top { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #eee; position: relative; }
         .tab-container { display: flex; gap: 10px; margin: 0 auto; transform: translateX(50px); }
         .tab-btn { display: flex; align-items: center; gap: 6px; padding: 6px 15px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; cursor: pointer; color: #666; }
         .tab-active { background-color: #e6f2ff; color: #007aff; }
@@ -39,7 +70,6 @@
         .plus-icon-img { width: 28px; height: 28px; }
         .tool-icons-right { display: flex; gap: 15px; align-items: center; }
         .tool-icon { width: 28px; height: 28px; cursor: pointer; opacity: 0.7; }
-        .tool-icon:hover { opacity: 1; }
         .notes-container { flex: 1; overflow-y: auto; padding: 0 20px; }
         .note-item { display: flex; align-items: center; padding: 15px 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.1s; }
         .note-item:hover { background-color: #f9f9f9; }
@@ -49,7 +79,7 @@
         .note-date { font-size: 0.85rem; color: #999; }
         .note-menu-dots { color: #bbb; font-size: 1.5rem; font-weight: bold; margin-left: 10px; }
 
-        /* 画面2: 編集（チャット）画面 */
+        /* --- 画面2: 編集画面 --- */
         #view-edit { display: none; width: 100%; height: 100%; background-color: #12264d; color: #333; position: relative; }
         .sidebar { position: absolute; left: 0; top: 0; bottom: 0; width: 70px; display: flex; flex-direction: column; z-index: 100; }
         .sidebar-upper { background-color: #f4f5f7; width: 100%; display: flex; flex-direction: column; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
@@ -65,7 +95,7 @@
         .circle-wrapper::after { content: "◀"; color: #fff; font-size: 0.9rem; position: absolute; right: -18px; top: 12px; font-weight: bold; }
         .icon-label-white { color: #fff; font-size: 0.65rem; margin-top: 3px; font-weight: bold; }
         .header-info-edit { position: absolute; top: 15px; right: 20px; text-align: right; color: #fff; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; }
-        .user-name-area { font-size: 1.1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; }
+        .user-name-area { font-size: 1.1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; position: relative;}
         .user-name-area:hover { background: rgba(255,255,255,0.2); }
         .class-info-edit { font-size: 0.85rem; margin-top: 5px; opacity: 0.9; }
         .trash-area { position: absolute; bottom: 15px; right: 15px; display: flex; flex-direction: column; align-items: flex-end; color: #666; z-index: 50; cursor: pointer; transition: transform 0.1s; }
@@ -73,21 +103,101 @@
         .trash-img { width: 50px; opacity: 0.6; }
         .saved-badge { background: #333; color: #fff; border: 1px solid #777; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; margin-top: 2px; }
 
-        /* 提出箱ダミー */
+        /* ----------------------------------------------------
+           ★ ユーザーメニュー（ドロップダウン形式）
+           ---------------------------------------------------- */
+        .user-menu-dropdown {
+            position: fixed; /* 固定位置に変更 */
+            top: 60px; right: 20px; 
+            background: #fff; color: #333;
+            border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            width: 320px; display: none; z-index: 9999;
+            overflow: hidden; border: 1px solid #ddd;
+            font-family: "BIZ UDGothic", sans-serif;
+            text-align: center;
+        }
+        .menu-header-info {
+            padding: 20px; border-bottom: 1px solid #eee; background: #fcfcfc;
+        }
+        .p-school { font-size: 0.9rem; color: #555; margin-bottom: 8px; }
+        .p-id { font-size: 1rem; color: #666; margin-bottom: 8px; font-family: monospace; }
+        .p-name { font-size: 1.4rem; font-weight: bold; color: #333; }
+        
+        .profile-menu-item {
+            padding: 15px 0; border-bottom: 1px solid #eee; color: #007aff; font-weight: bold; cursor: pointer; transition: background 0.1s;
+        }
+        .profile-menu-item:hover { background: #f0f8ff; }
+        .profile-menu-item:last-child { border-bottom: none; }
+        .sub-status { font-size: 0.7rem; color: #f00; font-weight: normal; margin-top: 3px; }
+
+        /* ----------------------------------------------------
+           ★ アプリ設定モーダル
+           ---------------------------------------------------- */
+        #view-settings {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 4000;
+            display: none; align-items: center; justify-content: center;
+        }
+        .settings-modal {
+            width: 600px; height: 80%; background: #f5f5f7;
+            border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .settings-header {
+            background: #f5f5f7; padding: 15px; border-bottom: 1px solid #ccc;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .settings-title { font-weight: bold; font-size: 1.1rem; flex: 1; text-align: center; }
+        .settings-close-btn { color: #007aff; cursor: pointer; font-weight: bold; }
+        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .settings-section-title { font-size: 0.85rem; color: #666; margin: 20px 0 5px 15px; }
+        .settings-group { background: #fff; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+        .settings-row {
+            padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 1rem;
+        }
+        .settings-row:last-child { border-bottom: none; }
+        .toggle-switch { position: relative; width: 50px; height: 30px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #34c759; } 
+        input:checked + .slider:before { transform: translateX(20px); }
+        .range-container { display: flex; align-items: center; gap: 10px; width: 50%; }
+        .range-slider { width: 100%; }
+        .setting-val { color: #666; }
+        .version-text { color: #888; font-size: 0.9rem; margin-top: 20px; text-align: center; }
+
+        /* チャット (提出箱) */
         #chat-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 75%; background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: none; flex-direction: column; z-index: 200; overflow: hidden; }
         .chat-header { padding: 12px 20px; border-bottom: 1px solid #eee; font-weight: bold; color: #444; display: flex; justify-content: space-between; align-items: center; background: #fcfcfc; font-size: 1.1rem; }
-        #msg-list { flex: 1; padding: 20px; overflow-y: auto; background: #f7f9fb; display: flex; flex-direction: column; gap: 15px; background-image: radial-gradient(#ddd 1px, transparent 1px); background-size: 20px 20px; }
-        .msg-wrapper { display: flex; flex-direction: column; max-width: 70%; }
-        .wrapper-mine { align-self: flex-end; align-items: flex-end; }
-        .msg-card { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 1rem; border: 1px solid #eee; position: relative; width: 100%; }
-        .msg-mine { background: #e6f2ff; border: 1px solid #cce5ff; }
-        .input-area { padding: 15px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 10px; align-items: center; }
-        #chat-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
-        #send-btn { background: #007aff; color: #fff; font-weight: bold; padding: 0 20px; border:none; height:44px; border-radius:8px; cursor:pointer;}
-        #photo-btn { background: #f0f0f0; border: none; width: 44px; height: 44px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .close-btn { cursor: pointer; font-size: 1.5rem; color: #aaa; padding: 0 10px; }
+        #msg-list { flex: 1; padding: 20px; overflow-y: auto; background: #f7f9fb; display: flex; flex-direction: column; gap: 15px; background-image: radial-gradient(#ddd 1px, transparent 1px); background-size: 20px 20px; }
+        .msg-wrapper { display: flex; flex-direction: column; max-width: 70%; transition: background 0.2s; border-radius: 8px;}
+        .wrapper-mine { align-self: flex-end; align-items: flex-end; }
+        .wrapper-other { align-self: flex-start; align-items: flex-start; }
+        .msg-card { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 1rem; border: 1px solid #eee; position: relative; width: 100%; cursor: pointer; transition: transform 0.1s; }
+        .msg-card:active { transform: scale(0.98); }
+        .msg-mine { background: #e6f2ff; border: 1px solid #cce5ff; }
+        .msg-other { background: #fff; }
+        .reply-ref { background: rgba(0,0,0,0.05); border-left: 3px solid #007aff; padding: 4px 8px; margin-bottom: 5px; border-radius: 4px; font-size: 0.8rem; color: #555; }
+        #reply-status-bar { background: #e6f2ff; padding: 5px 15px; font-size: 0.8rem; display: none; justify-content: space-between; align-items: center; border-top: 1px solid #ccc; color: #007aff; font-weight: bold; }
+        .cancel-reply { cursor: pointer; color: #f00; margin-left: 10px; font-weight: bold; }
+        .input-area { padding: 15px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 10px; align-items: center; flex-direction: column; }
+        .input-row { display: flex; width: 100%; gap: 10px; align-items: center; }
+        #chat-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
+        #send-btn { background: #007aff; color: #fff; font-weight: bold; padding: 0 20px; border:none; height:44px; border-radius:8px;}
 
-        /* カメラ */
+        /* 管理者パネル */
+        #view-admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 3000; display: none; flex-direction: column; color: #333; }
+        .admin-header { background: #333; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.2rem; }
+        .admin-close-btn { background: #555; border: 1px solid #777; color: #fff; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+        .admin-content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        .user-control-row { width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .user-info-admin { font-size: 1.1rem; font-weight: bold; }
+        .status-label { font-size: 0.8rem; margin-left: 10px; font-weight: bold; color: #666; }
+
+        /* その他オーバーレイ */
         #camera-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 500; display: none; flex-direction: column; justify-content: center; align-items: center; }
         #webcam-video { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); }
         #camera-ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; pading: 20px; }
@@ -95,13 +205,11 @@
         .cam-shutter { width: 70px; height: 70px; border-radius: 50%; background: #fff; border: 4px solid #ccc; display: inline-block; cursor: pointer; }
         .cam-close { pointer-events: auto; position: absolute; bottom: 40px; right: 40px; background: #444; color: #fff; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
         
-        /* 色選択 */
         #color-picker-overlay { position: fixed; top: 0; left: 70px; width: 300px; height: auto; background: #fff; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 400; display: none; padding: 10px; border: 1px solid #ccc; }
         .color-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .color-opt { height: 60px; border: 1px solid #ccc; cursor: pointer; }
         .c-pink { background: #ffcdd2; } .c-red { background: #ef5350; } .c-yellow { background: #fff9c4; } .c-orange { background: #ffca28; } .c-green-l { background: #c8e6c9; } .c-green-d { background: #00897b; } .c-blue-l { background: #b3e5fc; } .c-blue-d { background: #1565c0; } .c-white { background: #fff; } .c-black { background: #000; }
         
-        /* カードエディタ */
         #card-editor-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffcdd2; z-index: 450; display: none; flex-direction: column; }
         .editor-toolbar { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
         .editor-tools-center { display: flex; gap: 15px; background: rgba(0,0,0,0.1); padding: 5px 15px; border-radius: 30px; }
@@ -111,9 +219,54 @@
         .editor-back-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; display: flex; justify-content: center; align-items: center; color: #fff; cursor: pointer; font-size: 1.2rem; }
         .editor-main { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
         #card-textarea { width: 80%; height: 80%; background: transparent; border: none; outline: none; font-size: 2rem; font-family: inherit; resize: none; text-align: center; color: #333; }
+
     </style>
 </head>
 <body>
+
+    <!-- 画面0: ポータル -->
+    <div id="view-portal">
+        <img src="loilo.png" alt="LOILONOTE SCHOOL" class="portal-logo-img">
+        <button class="portal-btn" onclick="goToUserLogin()"><img src="loi.png" class="btn-icon-img" alt=""> ロイロノートでログイン</button>
+        <button class="portal-btn"><img src="google.png" class="btn-icon-img" alt=""> Googleでログイン</button>
+        <button class="portal-btn"><img src="mic.png" class="btn-icon-img" alt=""> Microsoftでログイン</button>
+        <div class="portal-links">
+            <a>パスワードがわからない場合</a><br>
+            <a onclick="goToAdminLogin()">管理者ログイン</a>
+            <a>ロイロノートとは？</a>
+        </div>
+        <div class="portal-footer">
+            <span style="text-decoration: underline;">日本語</span> <span>ひらがな</span> <span>English</span> <span>繁體中文</span> <span>简体中文</span>
+        </div>
+    </div>
+
+    <!-- 画面0.5: ユーザーログイン -->
+    <div id="view-user-login" class="overlay-screen">
+        <div class="login-box">
+            <div class="login-title">パスワードを入力</div><br>
+            <input type="password" id="user-pass-input" class="pass-input-field" placeholder="パスワード" autocomplete="off">
+            <br><button id="user-login-btn" class="login-action-btn">ログイン</button>
+            <div id="user-login-error" class="login-error-msg"></div>
+            <div class="back-link" onclick="backToPortal()">戻る</div>
+        </div>
+    </div>
+
+    <!-- 画面0.6: 管理者ログイン -->
+    <div id="view-admin-login" class="overlay-screen">
+        <div class="login-box" style="border: 2px solid #ffcc00;">
+            <div class="login-title">管理者パスワード</div><br>
+            <input type="password" id="admin-pass-input" class="pass-input-field" placeholder="管理者用パスワード" autocomplete="off">
+            <br><button id="admin-login-btn" class="login-action-btn">管理ログイン</button>
+            <div id="admin-login-error" class="login-error-msg"></div>
+            <div class="back-link" onclick="backFromAdmin()">戻る</div>
+        </div>
+    </div>
+
+    <!-- 画面0.7: 管理者パネル -->
+    <div id="view-admin-panel">
+        <div class="admin-header"><span>ユーザーアクセス管理</span><span class="admin-close-btn" onclick="closeAdminPanel()">閉じる</span></div>
+        <div class="admin-content" id="admin-user-list"></div>
+    </div>
 
     <!-- 画面1: ノート一覧 -->
     <div id="view-list">
@@ -149,7 +302,11 @@
                     <div class="tab-btn"><img src="tei.png" class="tab-icon">提出箱</div>
                     <div class="tab-btn"><img src="tai.png" class="tab-icon">タイムライン</div>
                 </div>
-                <div class="header-right-area"><span class="user-icon-mini"></span> <span class="display-name-ref">ここに名前を入力</span> <span>∨</span></div>
+                <!-- ユーザーメニュー -->
+                <div class="header-right-area" id="header-user-area">
+                    <span class="user-icon-mini"></span> 
+                    <span class="display-name-ref">ここに名前を入力</span> <span>∨</span>
+                </div>
             </div>
             <div class="list-toolbar-area">
                 <div class="new-note-btn"><img src="purasu.png" class="plus-icon-img" alt="+">新しいノートを作る</div>
@@ -170,7 +327,7 @@
         </div>
     </div>
 
-    <!-- 画面2: ノート編集（チャット）画面 -->
+    <!-- 画面2: 編集画面 -->
     <div id="view-edit">
         <div class="sidebar">
             <div class="sidebar-upper">
@@ -183,17 +340,12 @@
                 <div class="icon-btn"><img src="test.png" alt="テスト"></div>
             </div>
             <div class="sidebar-lower">
-                <!-- 資料箱 -> Copilotサイトを開く -->
                 <div class="circle-wrapper" onclick="window.open('https://copilot.microsoft.com', '_blank')">
-                    <div class="circle-icon"><img src="si.png" alt="資料箱"></div>
-                    <div class="icon-label-white">資料箱</div>
+                    <div class="circle-icon"><img src="si.png" alt="資料箱"></div><div class="icon-label-white">資料箱</div>
                 </div>
-                <!-- 提出ボタン -->
                 <div class="circle-wrapper" id="toggle-chat-btn"><div class="circle-icon"><img src="te.png" alt="提出"></div><div class="icon-label-white">提出</div></div>
-                <!-- 送る -->
                 <div class="circle-wrapper" onclick="window.location.href='https://loilonote.app/_/'">
-                    <div class="circle-icon"><img src="o.png" alt="送る"></div>
-                    <div class="icon-label-white">送る</div>
+                    <div class="circle-icon"><img src="o.png" alt="送る"></div><div class="icon-label-white">送る</div>
                 </div>
             </div>
         </div>
@@ -201,179 +353,382 @@
             <div class="user-name-area" id="user-name-display"><span id="current-name">ここに名前を入力</span> <span style="font-size:0.8rem; margin-left:5px;">∨</span></div>
             <div class="class-info-edit">2年6組 / 英語A<br><span id="current-date">--</span></div>
         </div>
-        
-        <div class="trash-area" id="trash-btn" title="ダブルクリックでサーバー容量を空ける">
-            <img src="gomi.png" class="trash-img" alt="ゴミ箱">
-            <div class="saved-badge">保存済み</div>
-        </div>
+        <div class="trash-area" id="trash-btn" title="ダブルクリックでサーバー容量を空ける"><img src="gomi.png" class="trash-img" alt="ゴミ箱"><div class="saved-badge">保存済み</div></div>
 
-        <!-- 提出箱ダミー -->
+        <!-- 提出箱 -->
         <div id="chat-overlay">
+            <div id="loading-indicator"></div>
             <div class="chat-header">提出箱（テキストカード）<span class="close-btn" id="close-chat-x">×</span></div>
             <div id="msg-list"></div>
             <div class="input-area">
-                <input type="file" id="file-input" accept="image/*" style="display: none;">
-                <button id="photo-btn">📷</button>
-                <input type="text" id="chat-input" placeholder="メッセージ..." autocomplete="off">
-                <button id="send-btn">送信</button>
+                <div id="reply-status-bar" style="width:100%; display:none; justify-content:space-between; margin-bottom:5px;">
+                    <span id="reply-target-text">返信先...</span><span class="cancel-reply" onclick="cancelReply()">×</span>
+                </div>
+                <div class="input-row">
+                    <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    <button id="photo-btn" title="写真を追加" style="display:none;">📷</button>
+                    <input type="text" id="chat-input" placeholder="メッセージ..." autocomplete="off">
+                    <button id="send-btn">送信</button>
+                </div>
             </div>
         </div>
 
-        <!-- カメラ -->
-        <div id="camera-overlay">
-            <video id="webcam-video" autoplay playsinline></video>
-            <div id="camera-ui-layer">
-                <div class="cam-controls"><div class="cam-shutter"></div></div>
-                <div class="cam-close" id="close-camera-btn">キャンセル</div>
-            </div>
-        </div>
-
-        <!-- 色選択 -->
-        <div id="color-picker-overlay">
-            <div class="color-grid">
-                <div class="color-opt c-pink" onclick="openEditor('#ffcdd2')"></div>
-                <div class="color-opt c-red" onclick="openEditor('#ef5350')"></div>
-                <div class="color-opt c-yellow" onclick="openEditor('#fff9c4')"></div>
-                <div class="color-opt c-orange" onclick="openEditor('#ffca28')"></div>
-                <div class="color-opt c-green-l" onclick="openEditor('#c8e6c9')"></div>
-                <div class="color-opt c-green-d" onclick="openEditor('#00897b')"></div>
-                <div class="color-opt c-blue-l" onclick="openEditor('#b3e5fc')"></div>
-                <div class="color-opt c-blue-d" onclick="openEditor('#1565c0')"></div>
-                <div class="color-opt c-white" onclick="openEditor('#fff')"></div>
-                <div class="color-opt c-black" onclick="openEditor('#222')"></div>
-            </div>
-        </div>
-
-        <!-- カードエディタ -->
+        <!-- オーバーレイ機能群 -->
+        <div id="camera-overlay"><video id="webcam-video" autoplay playsinline></video><div id="camera-ui-layer"><div class="cam-controls"><div class="cam-shutter"></div></div><div class="cam-close" id="close-camera-btn">キャンセル</div></div></div>
+        <div id="color-picker-overlay"><div class="color-grid"><div class="color-opt c-pink" onclick="openEditor('#ffcdd2')"></div><div class="color-opt c-red" onclick="openEditor('#ef5350')"></div><div class="color-opt c-yellow" onclick="openEditor('#fff9c4')"></div><div class="color-opt c-orange" onclick="openEditor('#ffca28')"></div><div class="color-opt c-green-l" onclick="openEditor('#c8e6c9')"></div><div class="color-opt c-green-d" onclick="openEditor('#00897b')"></div><div class="color-opt c-blue-l" onclick="openEditor('#b3e5fc')"></div><div class="color-opt c-blue-d" onclick="openEditor('#1565c0')"></div><div class="color-opt c-white" onclick="openEditor('#fff')"></div><div class="color-opt c-black" onclick="openEditor('#222')"></div></div></div>
         <div id="card-editor-overlay">
-            <div class="editor-toolbar">
-                <div class="editor-back-btn" onclick="closeEditor()">←</div>
-                <div class="editor-tools-center">
-                    <div class="et-icon">👆</div><div class="et-icon">🖊️</div><div class="et-icon active">あ</div><div class="et-icon">🎤</div><div class="et-icon">⏹️</div>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <div class="et-icon">...</div>
-                    <button class="editor-send-btn" onclick="sendCardFromEditor()">送る</button>
-                </div>
+            <div class="editor-toolbar"><div class="editor-back-btn" onclick="closeEditor()">←</div><div class="editor-tools-center"><div class="et-icon">👆</div><div class="et-icon">🖊️</div><div class="et-icon active">あ</div><div class="et-icon">🎤</div><div class="et-icon">⏹️</div></div><div style="display:flex; gap:10px;"><div class="et-icon">...</div><button class="editor-send-btn" onclick="sendCardFromEditor()">送る</button></div></div>
+            <div class="editor-main"><textarea id="card-textarea" placeholder="テキストを入力"></textarea></div>
+        </div>
+    </div>
+
+    <!-- ユーザープロフィール ドロップダウンメニュー -->
+    <div id="user-menu-dropdown" class="user-menu-dropdown">
+        <div class="menu-header-info">
+            <div class="p-school">横浜市立市場中学校</div>
+            <div class="p-id" id="p-user-id">---</div>
+            <div class="p-name" id="p-user-realname">---</div>
+        </div>
+        <div class="profile-menu-item" onclick="window.open('https://help.loilonote.app/', '_blank')">サポート</div>
+        <div class="profile-menu-item">チュートリアルを見る</div>
+        <div class="profile-menu-item" onclick="openSettings()">アプリ設定</div>
+        <div class="profile-menu-item" onclick="alert('システムは正常に稼働しています。\n応答時間: 12ms')">サービス状況<div class="sub-status">メンテナンス予定があります</div></div>
+        <div class="profile-menu-item" onclick="changeNameAction()">名前を変更</div>
+        <div class="profile-menu-item" onclick="goToAdminLoginFromMenu()">管理者ログイン</div>
+        <div class="profile-menu-item" onclick="location.reload()" style="color:#ff3b30;">ログアウト</div>
+    </div>
+
+    <!-- アプリ設定モーダル -->
+    <div id="view-settings">
+        <div class="settings-modal">
+            <div class="settings-header">
+                <span class="settings-close-btn" onclick="closeSettings()">閉じる</span>
+                <span class="settings-title">アプリ設定</span>
+                <span style="width:40px;"></span>
             </div>
-            <div class="editor-main">
-                <textarea id="card-textarea" placeholder="テキストを入力"></textarea>
+            <div class="settings-content">
+                <div class="settings-section-title">拡大・縮小</div>
+                <div class="settings-group">
+                    <div class="settings-row"><span>マウスホイールの方向を反転する</span><label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label></div>
+                    <div class="settings-row"><span>マウスホイール感度</span><div class="range-container"><input type="range" class="range-slider"><span class="setting-val">100%</span></div></div>
+                    <div class="settings-row"><span>トラックパッドのピンチズーム感度</span><div class="range-container"><input type="range" class="range-slider"><span class="setting-val">100%</span></div></div>
+                </div>
+                <div class="settings-section-title">言語設定</div>
+                <div class="settings-group"><div class="settings-row"><span>日本語</span><span style="color:#007aff; cursor:pointer;">変更 ∨</span></div></div>
+                <div class="settings-section-title">手書き</div>
+                <div class="settings-group"><div class="settings-row"><span>ペン優先モード</span><label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+                <div class="settings-section-title">録音・録画</div>
+                <div class="settings-group"><div class="settings-row"><span>雑音を低減する</span><label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label></div></div>
+                <div class="settings-section-title">アクセシビリティ</div>
+                <div class="settings-group"><div class="settings-row"><span>テキストの読み上げ</span><span style="color:#ccc;">></span></div></div>
+                <div class="settings-section-title">試験中の機能</div>
+                <div class="settings-group"><div class="settings-row"><span>キーボード操作</span><label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label></div></div>
+                <div class="version-text">バージョン v2.35</div>
+                <div class="version-text">アプリについて</div>
             </div>
         </div>
-
     </div>
 
     <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, getDocs, deleteDoc } 
+        from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // Firebase設定
+        const firebaseConfig = {
+          apiKey: "AIzaSyC9UgkUd62D79QfweQA1i0akH04kxwItD4",
+          authDomain: "newchat-90c71.firebaseapp.com",
+          projectId: "newchat-90c71",
+          storageBucket: "newchat-90c71.firebasestorage.app",
+          messagingSenderId: "633675964296",
+          appId: "1:633675964296:web:89ea68a0c7de516a29a43d",
+          measurementId: "G-7SM0B9KDXE"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- ユーザーデータ ---
+        const USERS = {
+            "6351": "西尾青葉",
+            "7253": "西村悠",
+            "8712": "鴫原宗次郎",
+            "8827": "富永悠月",
+            "1726": "田中大樹",
+            "sample12": "サンプル1",
+            "sample25": "サンプル2",
+            "sample726": "サンプル3"
+        };
+        const ADMIN_PASS = "1726";
+
+        // パーミッション管理
+        const PERM_KEY = "loilo_fake_permissions";
+        let permissions = JSON.parse(localStorage.getItem(PERM_KEY)) || {};
+        for (let id in USERS) { if (permissions[id] === undefined) permissions[id] = true; }
+        localStorage.setItem(PERM_KEY, JSON.stringify(permissions));
+        function savePermissions() { localStorage.setItem(PERM_KEY, JSON.stringify(permissions)); }
+
+        // 変数
         let currentStream = null;
         let selectedColor = '#ffcdd2';
-
-        window.goToEditMode = function() {
-            document.getElementById('view-list').style.display = 'none';
-            document.getElementById('view-edit').style.display = 'block';
-        };
-        window.goToListMode = function() {
-            document.getElementById('view-edit').style.display = 'none';
-            document.getElementById('view-list').style.display = 'flex';
-            toggleChat(false);
-            closeCamera();
-            closeColorPicker();
-            closeEditor();
-        };
-
-        const now = new Date();
-        document.getElementById("current-date").textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日のノート`;
-        
         let myName = localStorage.getItem('loilo_v2_name') || "ここに名前を入力";
-        document.getElementById("current-name").textContent = myName;
-        document.querySelectorAll(".display-name-ref").forEach(el => el.textContent = myName);
+        let realName = "";
+        let currentLoginId = ""; 
+        let replyTargetId = null;
 
-        document.getElementById("user-name-display").addEventListener('click', () => {
+        // 画面要素
+        const viewPortal = document.getElementById("view-portal");
+        const viewUserLogin = document.getElementById("view-user-login");
+        const viewAdminLogin = document.getElementById("view-admin-login");
+        const viewAdminPanel = document.getElementById("view-admin-panel");
+        const viewList = document.getElementById("view-list");
+        const viewEdit = document.getElementById("view-edit");
+        const viewSettings = document.getElementById("view-settings");
+
+        const headerUserArea = document.getElementById("header-user-area");
+        const editUserArea = document.getElementById("user-name-display");
+        const userMenu = document.getElementById("user-menu-dropdown"); // ドロップダウン
+        const pUserId = document.getElementById("p-user-id");
+        const pUserRealName = document.getElementById("p-user-realname");
+
+        // 画面遷移
+        window.goToUserLogin = function() { viewPortal.style.display = "none"; viewUserLogin.style.display = "flex"; document.getElementById("user-pass-input").focus(); };
+        window.goToAdminLogin = function() { viewPortal.style.display = "none"; viewAdminLogin.style.display = "flex"; document.getElementById("admin-pass-input").focus(); };
+        
+        window.backToPortal = function() { 
+            viewUserLogin.style.display = "none"; 
+            viewAdminLogin.style.display = "none"; 
+            if (currentLoginId) {
+                if (viewEdit.style.display === "block") {
+                    // nop (stay in edit view)
+                } else {
+                    viewList.style.display = "flex"; 
+                }
+            } else {
+                viewPortal.style.display = "flex"; 
+            }
+            document.getElementById("user-pass-input").value = "";
+            document.getElementById("admin-pass-input").value = "";
+            document.getElementById("user-login-error").textContent = "";
+            document.getElementById("admin-login-error").textContent = "";
+        };
+        
+        window.backFromAdmin = function() {
+            viewAdminLogin.style.display = "none";
+            document.getElementById("admin-login-error").textContent = "";
+            document.getElementById("admin-pass-input").value = "";
+            if (currentLoginId) {
+                viewList.style.display = "flex";
+            } else {
+                viewPortal.style.display = "flex";
+            }
+        };
+        
+        window.goToEditMode = function() { document.getElementById('view-list').style.display = 'none'; document.getElementById('view-edit').style.display = 'block'; };
+        window.goToListMode = function() { document.getElementById('view-edit').style.display = 'none'; document.getElementById('view-list').style.display = 'flex'; toggleChat(false); closeCamera(); closeColorPicker(); closeEditor(); };
+
+        // ユーザーログイン
+        document.getElementById("user-login-btn").addEventListener("click", performUserLogin);
+        document.getElementById("user-pass-input").addEventListener("keypress", (e) => { if(e.key === "Enter") performUserLogin(); });
+
+        function performUserLogin() {
+            const val = document.getElementById("user-pass-input").value;
+            if (USERS[val]) {
+                if (permissions[val] === false) {
+                    document.getElementById("user-login-error").textContent = "このアカウントはロックされています";
+                    return;
+                }
+                realName = USERS[val];
+                currentLoginId = val;
+                viewUserLogin.style.display = "none";
+                viewList.style.display = "flex";
+                updateNameDisplay();
+            } else {
+                document.getElementById("user-login-error").textContent = "パスワードが違います";
+                document.getElementById("user-pass-input").value = "";
+            }
+        }
+
+        // 名前更新
+        const currentNameSpan = document.getElementById("current-name");
+        const nameRefs = document.querySelectorAll(".display-name-ref");
+        const dateSpan = document.getElementById("current-date");
+        const now = new Date();
+        dateSpan.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日のノート`;
+
+        function updateNameDisplay() {
+            const fullName = `${myName}・${realName}`;
+            currentNameSpan.textContent = fullName;
+            nameRefs.forEach(el => el.textContent = fullName);
+            pUserId.textContent = currentLoginId; 
+            pUserRealName.textContent = realName;
+        }
+
+        // --- ユーザーメニュー（ドロップダウン）制御 ---
+        headerUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
+        editUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
+        
+        function toggleUserMenu() {
+            const isVisible = userMenu.style.display === 'block';
+            userMenu.style.display = isVisible ? 'none' : 'block';
+        }
+        
+        // 画面のどこかをクリックしたらメニューを閉じる
+        document.addEventListener('click', () => {
+            userMenu.style.display = 'none';
+        });
+        // メニュー内部クリックは閉じない
+        userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
+
+
+        window.changeNameAction = function() {
+            userMenu.style.display = 'none';
             const newName = prompt("表示名を変更:", myName);
             if(newName && newName.trim() !== ""){
-                myName = newName; 
-                document.getElementById("current-name").textContent = myName; 
-                localStorage.setItem('loilo_v2_name', myName);
-                document.querySelectorAll(".display-name-ref").forEach(el => el.textContent = myName);
+                myName = newName; localStorage.setItem('loilo_v2_name', myName); updateNameDisplay();
             }
-        });
-
-        // カメラ
-        const btnCamera = document.getElementById("btn-camera");
-        const camOverlay = document.getElementById("camera-overlay");
-        const camClose = document.getElementById("close-camera-btn");
-        const videoEl = document.getElementById("webcam-video");
-
-        btnCamera.addEventListener("click", async () => {
-            camOverlay.style.display = "flex";
-            try {
-                currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoEl.srcObject = currentStream;
-            } catch(e) { alert("カメラ起動失敗"); camOverlay.style.display = "none"; }
-        });
-        function closeCamera() {
-            camOverlay.style.display = "none";
-            if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); currentStream = null; }
+        };
+        
+        window.openSettings = function() { userMenu.style.display = 'none'; viewSettings.style.display = "flex"; };
+        window.closeSettings = function() { viewSettings.style.display = "none"; };
+        
+        window.goToAdminLoginFromMenu = function() {
+            userMenu.style.display = 'none';
+            viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex';
         }
-        camClose.addEventListener("click", closeCamera);
 
-        // 提出箱（チャット）
-        const toggleChatBtn = document.getElementById("toggle-chat-btn");
+        // 管理者ログイン
+        document.getElementById("admin-login-btn").addEventListener("click", performAdminLogin);
+        function performAdminLogin() {
+            if (document.getElementById("admin-pass-input").value === ADMIN_PASS) {
+                viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; renderAdminList();
+            } else { document.getElementById("admin-login-error").textContent = "パスワードが違います"; }
+        }
+        
+        window.closeAdminPanel = function() { 
+            viewAdminPanel.style.display = "none"; 
+            document.getElementById("admin-pass-input").value = "";
+            if(currentLoginId) {
+                viewList.style.display = "flex"; 
+            } else {
+                viewPortal.style.display = "flex"; 
+            }
+        };
+
+        function renderAdminList() {
+            const listDiv = document.getElementById("admin-user-list"); listDiv.innerHTML = "";
+            for (let id in USERS) {
+                const row = document.createElement("div"); row.className = "user-control-row";
+                row.innerHTML = `<div class="user-info-admin">${USERS[id]} (${id})</div><div style="display:flex; align-items:center;"><label class="toggle-switch"><input type="checkbox" ${permissions[id]?"checked":""} onchange="togglePermission('${id}', this)"><span class="slider"></span></label><span class="status-label">${permissions[id]?"許可":"禁止"}</span></div>`;
+                listDiv.appendChild(row);
+            }
+        }
+        window.togglePermission = function(id, cb) { permissions[id] = cb.checked; savePermissions(); cb.parentElement.nextElementSibling.textContent = permissions[id]?"許可":"禁止"; };
+
+        // チャット & Firebase
         const chatOverlay = document.getElementById("chat-overlay");
-        const closeChatX = document.getElementById("close-chat-x");
+        const msgList = document.getElementById("msg-list");
         const chatInput = document.getElementById("chat-input");
         const sendBtn = document.getElementById("send-btn");
-        const msgList = document.getElementById("msg-list");
+        const replyStatusBar = document.getElementById("reply-status-bar");
+        const replyTargetText = document.getElementById("reply-target-text");
+        const myUid = localStorage.getItem('loilo_v2_uid') || Math.random().toString(36).substring(7); localStorage.setItem('loilo_v2_uid', myUid);
+
+        document.getElementById("toggle-chat-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleChat(); });
+        document.getElementById("close-chat-x").addEventListener("click", () => toggleChat(false));
 
         function toggleChat(force) {
             let show = (chatOverlay.style.display === "flex");
-            if(force !== undefined) show = !force;
+            if (force !== undefined) show = !force;
             chatOverlay.style.display = show ? "none" : "flex";
+            if (!show) window.cancelReply();
+            else msgList.scrollTop = msgList.scrollHeight;
         }
-        toggleChatBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleChat(); });
-        closeChatX.addEventListener("click", () => toggleChat(false));
 
-        sendBtn.addEventListener("click", () => {
-            if(!chatInput.value.trim()) return;
-            const div = document.createElement("div");
-            div.classList.add("msg-wrapper", "wrapper-mine");
-            div.innerHTML = `<div class="msg-card msg-mine">${escapeHtml(chatInput.value)}</div>`;
-            msgList.appendChild(div);
-            chatInput.value = "";
+        window.cancelReply = function() { replyTargetId = null; replyStatusBar.style.display = "none"; }
+
+        async function sendPayload(text="", file=null) {
+            if(!text && !file) return;
+            let imageUrl = null;
+            if(file) {
+                // 簡易圧縮
+                imageUrl = await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(file);});
+            }
+            const payload = { text, imageUrl, name: `${myName}・${realName}`, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
+            if(replyTargetId) payload.replyTo = replyTargetId;
+            await addDoc(collection(db, "fake_loilo_v2"), payload);
+            chatInput.value = ""; window.cancelReply();
+        }
+        sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
+        chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
+        document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
+
+        // 受信
+        const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
+        onSnapshot(q, (snap) => {
+            msgList.innerHTML = ""; const idMap = {};
+            snap.forEach(d => idMap[d.id] = d.data().text || "画像");
+            snap.forEach(d => {
+                const data = d.data();
+                const div = document.createElement("div"); div.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
+                const card = document.createElement("div"); card.className = "msg-card " + (data.uid===myUid?"msg-mine":"msg-other");
+                card.id = "msg-"+d.id;
+                card.addEventListener("dblclick", ()=>{ replyTargetId=d.id; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; });
+                
+                let html = "";
+                if(data.replyTo && idMap[data.replyTo]) html += `<div class="reply-ref" onclick="document.getElementById('msg-${data.replyTo}').scrollIntoView({behavior:'smooth'});">↩ ${escapeHtml(idMap[data.replyTo])}</div>`;
+                if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
+                if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
+                card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)}</div><div class="msg-content">${html}</div>`;
+                div.appendChild(card);
+                if(data.uid===myUid && data.readBy && data.readBy.length>0) {
+                    const read = document.createElement("div"); read.className="read-label"; read.textContent="既読"; div.appendChild(read);
+                }
+                msgList.appendChild(div);
+            });
+            msgList.scrollTop = msgList.scrollHeight;
         });
 
-        // ツール関連
+        // ツール類 (カメラ、エディタ)
         const btnText = document.getElementById("btn-text");
         const colorPicker = document.getElementById("color-picker-overlay");
         const cardEditor = document.getElementById("card-editor-overlay");
         const cardTextarea = document.getElementById("card-textarea");
+        
+        // カメラ機能の修正 (確実に動作するように)
+        const btnCamera = document.getElementById("btn-camera");
+        const cameraOverlay = document.getElementById("camera-overlay");
+        const videoEl = document.getElementById("webcam-video");
+        const closeCameraBtn = document.getElementById("close-camera-btn");
 
-        btnText.addEventListener("click", (e) => { e.stopPropagation(); colorPicker.style.display = "block"; });
-        window.openEditor = function(c) {
-            selectedColor = c;
-            colorPicker.style.display = "none";
-            cardEditor.style.background = c;
-            cardEditor.style.display = "flex";
-            cardTextarea.value = "";
-            cardTextarea.focus();
-        }
-        window.closeEditor = function() { cardEditor.style.display = "none"; }
-        window.closeColorPicker = function() { colorPicker.style.display = "none"; }
-        window.sendCardFromEditor = function() {
-            if(!cardTextarea.value.trim()) return;
-            closeEditor();
-            toggleChat(true);
-            const div = document.createElement("div");
-            div.classList.add("msg-wrapper", "wrapper-mine");
-            div.innerHTML = `<div class="msg-card msg-mine" style="background:${selectedColor}">${escapeHtml(cardTextarea.value)}</div>`;
-            msgList.appendChild(div);
-        }
-
-        document.body.addEventListener("click", (e) => {
-            if(!colorPicker.contains(e.target) && !btnText.contains(e.target)) closeColorPicker();
+        btnCamera.addEventListener("click", async () => {
+            cameraOverlay.style.display = "flex";
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoEl.srcObject = currentStream;
+            } catch (err) {
+                alert("カメラの起動に失敗しました: " + err);
+                cameraOverlay.style.display = "none";
+            }
         });
 
-        function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
+        window.closeCamera = function() {
+            cameraOverlay.style.display = "none";
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+        };
+        closeCameraBtn.addEventListener("click", closeCamera);
+
+
+        btnText.addEventListener("click", (e) => { e.stopPropagation(); colorPicker.style.display = "block"; });
+        window.openEditor = function(c) { selectedColor=c; colorPicker.style.display="none"; cardEditor.style.background=c; cardEditor.style.display="flex"; cardTextarea.value=""; cardTextarea.focus(); };
+        window.closeEditor = function() { cardEditor.style.display="none"; };
+        window.sendCardFromEditor = function() { if(cardTextarea.value.trim()){ closeEditor(); toggleChat(true); sendPayload(cardTextarea.value); } };
+        document.body.addEventListener("click", (e) => { if(!colorPicker.contains(e.target)&&!btnText.contains(e.target)) colorPicker.style.display="none"; });
+
+        function escapeHtml(str) { if(!str)return""; return str.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
     </script>
 </body>
 </html>
-
