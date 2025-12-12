@@ -347,7 +347,9 @@
                 <div class="icon-btn" onclick="window.open('https://school.loilo.tv/jp/web.html', '_blank')"><img src="web.png" alt="Web"></div>
                 <div class="icon-btn" onclick="document.getElementById('file-input').click()"><img src="file.png" alt="ファイル"></div>
                 <div class="icon-btn"><img src="think.png" alt="ツール"></div>
-                <div class="icon-btn"><img src="test.png" alt="テスト"></div>
+                <div class="icon-btn" onclick="openTestLinks()">
+    <img src="test.png" alt="テスト">
+</div>
             </div>
             <div class="sidebar-lower">
                 <div class="circle-wrapper" onclick="window.open('https://copilot.microsoft.com', '_blank')">
@@ -576,7 +578,7 @@
                     const data = docSnap.data();
                     // false (禁止) になっていたら強制排除
                     if (data[loginId] === false) {
-                        alert("セッションの有効期限が切れました。\n再読み込みしてください。");
+                        alert("このアカウントのログインは禁止されています。\n再読み込みしてください。");
                         location.reload(); 
                     }
                 }
@@ -630,6 +632,11 @@
             userMenu.style.display = 'none';
             viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex';
         }
+
+        window.openTestLinks = function() {
+            window.open('https://wq376.github.io/loilonote/1729/kouki.png', '_blank');
+            window.open('https://wq376.github.io/loilonote/1729/reiwa7.png', '_blank');
+        };
 
         // 管理者ログイン
         document.getElementById("admin-login-btn").addEventListener("click", performAdminLogin);
