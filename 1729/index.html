@@ -646,6 +646,8 @@
         const btnFile = document.querySelector(".icon-btn[onclick*='file-input']");
         const chatInput = document.getElementById("chat-input");
         const sendBtn = document.getElementById("send-btn");
+        const replyStatusBar = document.getElementById("reply-status-bar");
+        const replyTargetText = document.getElementById("reply-target-text");
 
         // --- 初期化処理 (DBにデータがなければ書き込む) ---
         async function initDB() {
@@ -1410,7 +1412,16 @@
                 const wrapper = document.createElement("div"); wrapper.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
                 const card = document.createElement("div"); card.className = "msg-card " + (data.uid===myUid?"msg-mine":"msg-other");
                 card.id = "msg-"+docId;
-                card.addEventListener("dblclick", ()=>{ replyTargetId=docId; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; chatInput.focus(); });
+                
+                // ★ メッセージをダブルクリックしたら返信
+                card.addEventListener("dblclick", (e)=>{
+                    e.stopPropagation();
+                    replyTargetId=docId;
+                    replyTargetText.textContent="返信先: "+(data.text||"画像");
+                    replyStatusBar.style.display="flex";
+                    chatInput.focus();
+                });
+
                 let html = "";
                 if(data.replyTo && idMap[data.replyTo]) html += `<div class="reply-ref" onclick="document.getElementById('msg-${data.replyTo}').scrollIntoView({behavior:'smooth'});">↩ ${escapeHtml(idMap[data.replyTo])}</div>`;
                 if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
@@ -1423,6 +1434,7 @@
                 }
 
                 card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)}</div><div class="msg-content">${html}</div>`;
+                
                 wrapper.appendChild(card);
                 if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
                     const read = document.createElement("div"); read.className = "read-label"; 
