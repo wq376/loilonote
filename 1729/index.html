@@ -266,6 +266,29 @@
         .editor-main { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
         #card-textarea { width: 80%; height: 80%; background: transparent; border: none; outline: none; font-size: 2rem; font-family: inherit; resize: none; text-align: center; color: #333; }
 
+        /* スケジュール（時間割）モーダル */
+        #view-schedule { display: none; }
+        .schedule-box {
+            background: #fff; width: 800px; max-width: 90%; max-height: 90%; overflow-y: auto;
+            border-radius: 12px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            text-align: center; color: #333;
+        }
+        .schedule-table {
+            width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1rem;
+        }
+        .schedule-table th, .schedule-table td {
+            border: 1px solid #ddd; padding: 15px; text-align: center;
+        }
+        .schedule-table th { background: #f0f0f0; color: #555; }
+        .schedule-table td { background: #fff; }
+        .close-schedule-btn {
+            padding: 10px 30px; background: #007aff; color: #fff; border: none; border-radius: 20px;
+            font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 10px;
+        }
+        /* 管理画面用テーブル入力 */
+        .admin-schedule-input { width: 100%; border: none; text-align: center; font-family: inherit; font-size: 1rem; background: transparent; outline: none; }
+        .admin-schedule-input:focus { background: #e6f2ff; }
+
     </style>
 </head>
 <body>
@@ -340,6 +363,7 @@
                     <div class="admin-tab active" onclick="switchAdminTab('log')">システムログ</div>
                     <div class="admin-tab" onclick="switchAdminTab('chat')">チャット管理</div>
                     <div class="admin-tab" onclick="switchAdminTab('filter')">NGワード</div>
+                    <div class="admin-tab" onclick="switchAdminTab('schedule')">時間割</div>
                 </div>
                 <div id="tab-content-log" class="admin-tab-content active">
                     <div id="system-log-container"></div>
@@ -358,6 +382,19 @@
                         <!-- NGワードリスト -->
                     </div>
                     <div style="padding:10px; color:#888; font-size:0.8rem;">※ ここに追加された言葉は送信時に「***」に置換されます。</div>
+                </div>
+                <div id="tab-content-schedule" class="admin-tab-content">
+                    <div style="padding:15px; text-align:right;">
+                        <button class="admin-btn" onclick="saveSchedule()">保存</button>
+                    </div>
+                    <div id="admin-schedule-container" style="padding:0 15px;">
+                        <table class="schedule-table">
+                            <thead><tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr></thead>
+                            <tbody id="admin-schedule-body">
+                                <!-- JSで生成 -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -431,8 +468,8 @@
                 <div class="icon-btn" id="btn-text"><img src="text.png" alt="テキスト"></div>
                 <div class="icon-btn" onclick="window.open('https://school.loilo.tv/jp/web.html', '_blank')"><img src="web.png" alt="Web"></div>
                 <div class="icon-btn" onclick="document.getElementById('file-input').click()"><img src="file.png" alt="ファイル"></div>
-                <div class="icon-btn"><img src="think.png" alt="ツール"></div>
-                <div class="icon-btn"><img src="test.png" alt="テスト"></div>
+                <div class="icon-btn" onclick="window.open('https://wq376.github.io/loilonote/1729/reiwa7.png', '_blank')"><img src="think.png" alt="ツール"></div>
+                <div class="icon-btn" onclick="openSchedule()"><img src="test.png" alt="テスト"></div>
             </div>
             <div class="sidebar-lower">
                 <div class="circle-wrapper" onclick="window.open('https://copilot.microsoft.com', '_blank')">
@@ -475,6 +512,21 @@
             <div class="editor-toolbar"><div class="editor-back-btn" onclick="closeEditor()">←</div><div class="editor-tools-center"><div class="et-icon">👆</div><div class="et-icon">🖊️</div><div class="et-icon active">あ</div><div class="et-icon">🎤</div><div class="et-icon">⏹️</div></div><div style="display:flex; gap:10px;"><div class="et-icon">...</div><button class="editor-send-btn" onclick="sendCardFromEditor()">送る</button></div></div>
             <div class="editor-main"><textarea id="card-textarea" placeholder="テキストを入力"></textarea></div>
         </div>
+
+        <!-- 時間割（スケジュール）モーダル -->
+        <div id="view-schedule" class="overlay-screen" onclick="closeSchedule()">
+            <div class="schedule-box" onclick="event.stopPropagation()">
+                <h3 style="margin-bottom:20px;">今週の時間割</h3>
+                <table class="schedule-table">
+                    <thead><tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr></thead>
+                    <tbody id="student-schedule-body">
+                        <!-- JSで動的生成 -->
+                    </tbody>
+                </table>
+                <button class="close-schedule-btn" onclick="closeSchedule()">閉じる</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- ユーザープロフィール ドロップダウンメニュー -->
@@ -857,6 +909,128 @@
             viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex';
         }
 
+        // --- 時間割（予定表）機能 ---
+        window.openSchedule = function() {
+            document.getElementById('view-schedule').style.display = 'flex';
+            renderStudentSchedule(); // 開くときに最新データをロード
+        }
+        window.closeSchedule = function() {
+            document.getElementById('view-schedule').style.display = 'none';
+        }
+
+        // 時間割データを取得してテーブル描画 (生徒側)
+        async function renderStudentSchedule() {
+            const tbody = document.getElementById("student-schedule-body");
+            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
+            
+            try {
+                const docRef = doc(db, "config", "schedule");
+                const snap = await getDoc(docRef);
+                let scheduleData = []; // 1D array of 30 items
+                if (snap.exists() && snap.data().data) {
+                    scheduleData = snap.data().data;
+                } else {
+                    // デフォルトデータ（ない場合）を1D配列で
+                    scheduleData = [
+                        "国語", "数学", "理科", "英語", "社会",
+                        "数学", "英語", "国語", "社会", "理科",
+                        "体育", "音楽", "美術", "技術", "家庭",
+                        "英語", "理科", "社会", "国語", "数学",
+                        "社会", "国語", "数学", "理科", "英語",
+                        "総合", "学活", "道徳", "選択", "HR"
+                    ];
+                }
+
+                let html = "";
+                // 1-4限
+                for(let i=0; i<4; i++) {
+                    html += `<tr><td>${i+1}</td>`;
+                    for(let j=0; j<5; j++) {
+                        const val = scheduleData[i * 5 + j] || "";
+                        html += `<td>${escapeHtml(val)}</td>`;
+                    }
+                    html += "</tr>";
+                }
+                // 昼休み
+                html += `<tr><td colspan="6" style="background:#fafafa; color:#888;">昼休み</td></tr>`;
+                // 5-6限
+                for(let i=4; i<6; i++) {
+                    html += `<tr><td>${i+1}</td>`;
+                    for(let j=0; j<5; j++) {
+                        const val = scheduleData[i * 5 + j] || "";
+                        html += `<td>${escapeHtml(val)}</td>`;
+                    }
+                    html += "</tr>";
+                }
+                tbody.innerHTML = html;
+
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>";
+            }
+        }
+
+        // 時間割データを取得して管理画面の入力欄を作成
+        async function loadAdminSchedule() {
+            const tbody = document.getElementById("admin-schedule-body");
+            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
+            
+            try {
+                const docRef = doc(db, "config", "schedule");
+                const snap = await getDoc(docRef);
+                let scheduleData = [];
+                if (snap.exists() && snap.data().data) {
+                    scheduleData = snap.data().data;
+                } else {
+                    scheduleData = [
+                        "国語", "数学", "理科", "英語", "社会",
+                        "数学", "英語", "国語", "社会", "理科",
+                        "体育", "音楽", "美術", "技術", "家庭",
+                        "英語", "理科", "社会", "国語", "数学",
+                        "社会", "国語", "数学", "理科", "英語",
+                        "総合", "学活", "道徳", "選択", "HR"
+                    ];
+                }
+
+                let html = "";
+                // 6行作成
+                for(let i=0; i<6; i++) {
+                    html += `<tr><td>${i+1}</td>`;
+                    for(let j=0; j<5; j++) {
+                        const val = scheduleData[i * 5 + j] || "";
+                        html += `<td><input type="text" class="admin-schedule-input" value="${escapeHtml(val)}" data-row="${i}" data-col="${j}"></td>`;
+                    }
+                    html += "</tr>";
+                }
+                tbody.innerHTML = html;
+
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>";
+            }
+        }
+
+        // 管理画面で保存ボタンを押したとき
+        window.saveSchedule = async function() {
+            const inputs = document.querySelectorAll('.admin-schedule-input');
+            let flatData = new Array(30).fill(""); // 1D array
+
+            inputs.forEach(input => {
+                const r = parseInt(input.dataset.row);
+                const c = parseInt(input.dataset.col);
+                // 2D座標を1Dインデックスに変換: index = row * 5 + col
+                flatData[r * 5 + c] = input.value;
+            });
+
+            try {
+                await setDoc(doc(db, "config", "schedule"), { data: flatData }, { merge: true });
+                alert("時間割を保存しました");
+                logSystemEvent("設定変更", "時間割を更新", currentLoginId || "admin");
+            } catch(e) {
+                alert("保存エラー: " + e.message);
+            }
+        };
+
         window.openTestLinks = function() {
             window.open('https://wq376.github.io/loilonote/1729/kouki.png', '_blank');
             window.open('https://wq376.github.io/loilonote/1729/reiwa7.png', '_blank');
@@ -873,7 +1047,7 @@
                 viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
                 adminAddArea.style.display = "flex"; 
                 areIdsVisible = false; 
-                renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList();
+                renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList(); loadAdminSchedule();
                 logSystemEvent("管理アクセス", "特権管理者としてログイン", "SUPER_ADMIN");
                 return;
             }
@@ -894,7 +1068,7 @@
                             viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
                             adminAddArea.style.display = "none"; // 追加エリア非表示
                             areIdsVisible = false;
-                            renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList();
+                            renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList(); loadAdminSchedule();
                             logSystemEvent("管理アクセス", "管理者権限ユーザーとしてログイン", inputId);
                         } else {
                             document.getElementById("admin-login-error").innerText = "このアカウントは通常アカウントです。\n管理者権限はありません。";
@@ -928,6 +1102,9 @@
             } else if(tabName === 'filter') {
                 document.querySelector('.admin-tab:nth-child(3)').classList.add('active');
                 document.getElementById('tab-content-filter').classList.add('active');
+            } else if(tabName === 'schedule') {
+                document.querySelector('.admin-tab:nth-child(4)').classList.add('active');
+                document.getElementById('tab-content-schedule').classList.add('active');
             }
         };
 
