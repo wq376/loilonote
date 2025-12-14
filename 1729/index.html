@@ -236,6 +236,11 @@
         .ac-info { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
         .ac-content { font-size: 0.95rem; font-weight: bold; white-space: pre-wrap; word-break: break-all; }
         .ac-delete-btn { background: #ff3b30; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        
+        /* フィルター管理用 */
+        .filter-item { background: #fff; padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px; display: inline-flex; align-items: center; margin: 4px; font-weight: bold; color: #333; }
+        .filter-item .del-btn { margin-left: 8px; cursor: pointer; color: #ff3b30; font-weight: bold; font-size: 1.1rem; }
+        .filter-item .del-btn:hover { opacity: 0.7; }
 
         /* その他オーバーレイ */
         #camera-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 500; display: none; flex-direction: column; justify-content: center; align-items: center; }
@@ -332,6 +337,7 @@
                 <div class="admin-tabs">
                     <div class="admin-tab active" onclick="switchAdminTab('log')">システムログ</div>
                     <div class="admin-tab" onclick="switchAdminTab('chat')">チャット管理</div>
+                    <div class="admin-tab" onclick="switchAdminTab('filter')">NGワード</div>
                 </div>
                 <div id="tab-content-log" class="admin-tab-content active">
                     <div id="system-log-container"></div>
@@ -340,6 +346,16 @@
                     <div id="admin-chat-list-container">
                         <div style="text-align:center; padding:10px; color:#888;">読み込み中...</div>
                     </div>
+                </div>
+                <div id="tab-content-filter" class="admin-tab-content">
+                    <div style="padding:15px; border-bottom:1px solid #ddd; display:flex; gap:10px;">
+                        <input type="text" id="new-filter-word" placeholder="不適切ワードを追加" class="admin-input" style="flex:1;">
+                        <button class="admin-btn" onclick="addFilterWord()">追加</button>
+                    </div>
+                    <div id="filter-word-list" style="padding:15px;">
+                        <!-- NGワードリスト -->
+                    </div>
+                    <div style="padding:10px; color:#888; font-size:0.8rem;">※ ここに追加された言葉は送信時に「***」に置換されます。</div>
                 </div>
             </div>
         </div>
@@ -508,7 +524,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, getDocs, deleteDoc, setDoc, limit, getDoc, deleteField } 
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, getDocs, deleteDoc, setDoc, limit, getDoc, deleteField } 
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         // Firebase設定
@@ -551,6 +567,7 @@
         let myPermissions = { isAllowed: true, isAdmin: false, canChangeName: true, canUnsend: true }; 
         let currentAdminSessionType = 'none'; // 'super' | 'user' | 'none'
         let areIdsVisible = false; // ID表示状態
+        let ngWords = []; // NGワードリスト
 
         // 画面要素
         const viewPortal = document.getElementById("view-portal");
@@ -572,15 +589,32 @@
         // --- 初期化処理 (DBにデータがなければ書き込む) ---
         async function initDB() {
             try {
+                // ユーザーデータ
                 const docRef = doc(db, "config", "users");
                 const docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     await setDoc(docRef, INITIAL_USERS);
                     console.log("初期ユーザーデータを構築しました");
                 }
+
+                // フィルターデータ
+                const filterRef = doc(db, "config", "filters");
+                const filterSnap = await getDoc(filterRef);
+                if (!filterSnap.exists()) {
+                    await setDoc(filterRef, { words: ["死ね", "殺す", "バカ", "アホ", "うざい"] });
+                    console.log("初期フィルターデータを構築しました");
+                }
             } catch(e) { console.error("DB初期化エラー", e); }
         }
         initDB();
+
+        // フィルター設定の監視
+        onSnapshot(doc(db, "config", "filters"), (docSnap) => {
+            if (docSnap.exists()) {
+                ngWords = docSnap.data().words || [];
+                renderFilterList(); // 管理者画面が開いていれば更新
+            }
+        });
 
         // 画面遷移
         window.goToUserLogin = function() { viewPortal.style.display = "none"; viewUserLogin.style.display = "flex"; document.getElementById("user-pass-input").focus(); };
@@ -793,7 +827,7 @@
                 viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
                 adminAddArea.style.display = "flex"; 
                 areIdsVisible = false; 
-                renderAdminList(); renderSystemLogs(); renderAdminChatList(); 
+                renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList();
                 logSystemEvent("管理アクセス", "特権管理者としてログイン", "SUPER_ADMIN");
                 return;
             }
@@ -814,7 +848,7 @@
                             viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
                             adminAddArea.style.display = "none"; // 追加エリア非表示
                             areIdsVisible = false;
-                            renderAdminList(); renderSystemLogs(); renderAdminChatList();
+                            renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList();
                             logSystemEvent("管理アクセス", "管理者権限ユーザーとしてログイン", inputId);
                         } else {
                             document.getElementById("admin-login-error").innerText = "このアカウントは通常アカウントです。\n管理者権限はありません。";
@@ -842,9 +876,12 @@
             if(tabName === 'log') {
                 document.querySelector('.admin-tab:nth-child(1)').classList.add('active');
                 document.getElementById('tab-content-log').classList.add('active');
-            } else {
+            } else if(tabName === 'chat') {
                 document.querySelector('.admin-tab:nth-child(2)').classList.add('active');
                 document.getElementById('tab-content-chat').classList.add('active');
+            } else if(tabName === 'filter') {
+                document.querySelector('.admin-tab:nth-child(3)').classList.add('active');
+                document.getElementById('tab-content-filter').classList.add('active');
             }
         };
 
@@ -893,6 +930,43 @@
                 alert("再読み込みコマンドを送信しました。");
             } catch(e) { alert("送信失敗: "+e.message); }
         };
+        
+        // --- フィルター管理ロジック ---
+        window.addFilterWord = async function() {
+            const input = document.getElementById('new-filter-word');
+            const val = input.value.trim();
+            if(!val) return;
+            if(ngWords.includes(val)) { alert('既に追加されています'); return; }
+            try {
+                await updateDoc(doc(db, "config", "filters"), {
+                    words: arrayUnion(val)
+                });
+                input.value = "";
+                logSystemEvent("設定変更", `NGワード追加: ${val}`, currentLoginId || "admin");
+            } catch(e) { alert("追加エラー: " + e.message); }
+        };
+        
+        window.deleteFilterWord = async function(word) {
+            if(!confirm(`「${word}」をフィルターから削除しますか？`)) return;
+            try {
+                await updateDoc(doc(db, "config", "filters"), {
+                    words: arrayRemove(word)
+                });
+                logSystemEvent("設定変更", `NGワード削除: ${word}`, currentLoginId || "admin");
+            } catch(e) { alert("削除エラー: " + e.message); }
+        };
+        
+        function renderFilterList() {
+            const listDiv = document.getElementById('filter-word-list');
+            if(!listDiv) return;
+            listDiv.innerHTML = "";
+            ngWords.forEach(word => {
+                const el = document.createElement("div");
+                el.className = "filter-item";
+                el.innerHTML = `<span>${escapeHtml(word)}</span> <span class="del-btn" onclick="deleteFilterWord('${escapeHtml(word)}')">×</span>`;
+                listDiv.appendChild(el);
+            });
+        }
 
         window.toggleIdVisibility = function() {
             if(areIdsVisible) { areIdsVisible = false; renderAdminList(); return; }
@@ -1050,11 +1124,23 @@
 
         async function sendPayload(text="", file=null) {
             if(!text && !file) return;
+            
+            // フィルタリング処理 (テキストのみ)
+            let safeText = text;
+            if(safeText) {
+                ngWords.forEach(badWord => {
+                    if(badWord && safeText.includes(badWord)) {
+                        // 文字数分の*に置換
+                        safeText = safeText.split(badWord).join("*".repeat(badWord.length));
+                    }
+                });
+            }
+            
             let imageUrl = null;
             if(file) { imageUrl = await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(file);}); }
             let senderName = currentUserData ? currentUserData.name : "Unknown";
             if (currentUserData && currentUserData.showNickname && myName) { senderName = `${myName}・${currentUserData.name}`; }
-            const payload = { text, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
+            const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
             if(replyTargetId) payload.replyTo = replyTargetId;
             await addDoc(collection(db, "fake_loilo_v2"), payload);
             chatInput.value = ""; window.cancelReply();
