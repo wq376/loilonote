@@ -211,6 +211,7 @@
         .admin-btn { padding: 8px 16px; background: #007aff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .admin-btn-secondary { padding: 8px 16px; background: #666; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; }
         .admin-btn.del { background: #ff3b30; }
+        .admin-btn.csv { background: #28a745; margin-left: 10px; }
 
         .admin-user-list { flex: 1; overflow-y: auto; padding: 20px; }
         .user-control-row { width: 100%; display: flex; flex-direction: column; padding: 15px; border-bottom: 1px solid #eee; gap: 10px; }
@@ -218,8 +219,8 @@
         .user-settings-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
         
         .user-info-admin { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 10px; }
-        .edit-icon, .delete-icon { cursor: pointer; font-size: 1.2rem; opacity: 0.6; }
-        .edit-icon:hover, .delete-icon:hover { opacity: 1; }
+        .edit-icon, .delete-icon, .alert-icon { cursor: pointer; font-size: 1.2rem; opacity: 0.6; }
+        .edit-icon:hover, .delete-icon:hover, .alert-icon:hover { opacity: 1; }
         
         .device-info { font-size: 0.8rem; color: #666; font-weight: normal; margin-left: 10px; }
         .setting-block { display: flex; align-items: center; gap: 8px; background: #f5f5f7; padding: 5px 10px; border-radius: 6px; border: 1px solid #ddd; }
@@ -229,7 +230,7 @@
         .log-entry { font-family: monospace; font-size: 0.8rem; border-bottom: 1px solid #e0e0e0; padding: 6px 0; line-height: 1.4; }
         .log-time { color: #007aff; font-weight: bold; margin-right: 8px; }
         .log-type { display: inline-block; padding: 2px 6px; border-radius: 4px; color: #fff; font-size: 0.7rem; margin-right: 5px; }
-        .log-login { background: #4caf50; } .log-warn { background: #ff9800; } .log-del { background: #f44336; } .log-change { background: #2196f3; } .log-chat { background: #9c27b0; } .log-add { background: #00bcd4; }
+        .log-login { background: #4caf50; } .log-warn { background: #ff9800; } .log-del { background: #f44336; } .log-change { background: #2196f3; } .log-chat { background: #9c27b0; } .log-add { background: #00bcd4; } .log-alert { background: #e91e63; }
 
         /* チャット管理用リスト */
         .admin-chat-item { background: #fff; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: flex-start; }
@@ -324,7 +325,8 @@
             <input type="text" id="new-user-name" class="admin-input" placeholder="名前" style="width:150px;">
             <button class="admin-btn" onclick="addNewUser()">追加</button>
             <div style="flex:1;"></div>
-            <button id="admin-delete-all-btn" class="admin-btn del">⚠ チャット履歴全消去</button>
+            <button class="admin-btn csv" onclick="downloadChatCSV()">📥 CSV保存</button>
+            <button id="admin-delete-all-btn" class="admin-btn del">⚠ 全消去</button>
         </div>
 
         <div class="admin-layout">
@@ -543,15 +545,15 @@
 
         // --- 初期ユーザーデータ (DBが空の場合のみ使用) ---
         const INITIAL_USERS = {
-            "1726": { name: "田中大樹", isAllowed: true, isAdmin: true, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "6351": { name: "西尾青葉", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "7253": { name: "西村悠", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "8712": { name: "鴫原宗次郎", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "8827": { name: "富永悠月", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "sample12": { name: "サンプル1", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "sample25": { name: "サンプル2", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "sample726": { name: "サンプル3", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false },
-            "admin": { name: "管理者アカウント", isAllowed: true, isAdmin: true, canChangeName: false, showNickname: false, canUnsend: true, needReload: false }
+            "1726": { name: "田中大樹", isAllowed: true, isAdmin: true, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "6351": { name: "西尾青葉", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "7253": { name: "西村悠", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "8712": { name: "鴫原宗次郎", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "8827": { name: "富永悠月", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "sample12": { name: "サンプル1", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "sample25": { name: "サンプル2", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "sample726": { name: "サンプル3", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
+            "admin": { name: "管理者アカウント", isAllowed: true, isAdmin: true, canChangeName: false, showNickname: false, canUnsend: true, needReload: false, canChat: true, canImage: true }
         };
         const SUPER_ADMIN_ID = "1726";
         const SUPER_ADMIN_PASS = "1726";
@@ -564,7 +566,7 @@
         let realName = "";
         let currentLoginId = ""; 
         let replyTargetId = null;
-        let myPermissions = { isAllowed: true, isAdmin: false, canChangeName: true, canUnsend: true }; 
+        let myPermissions = { isAllowed: true, isAdmin: false, canChangeName: true, canUnsend: true, canChat: true, canImage: true }; 
         let currentAdminSessionType = 'none'; // 'super' | 'user' | 'none'
         let areIdsVisible = false; // ID表示状態
         let ngWords = []; // NGワードリスト
@@ -585,6 +587,13 @@
         const pUserRealName = document.getElementById("p-user-realname");
         const menuChangeName = document.getElementById("menu-change-name");
         const adminAddArea = document.getElementById("admin-add-area");
+        
+        const photoBtn = document.getElementById("photo-btn");
+        const fileInput = document.getElementById("file-input");
+        const btnCamera = document.getElementById("btn-camera");
+        const btnFile = document.querySelector(".icon-btn[onclick*='file-input']");
+        const chatInput = document.getElementById("chat-input");
+        const sendBtn = document.getElementById("send-btn");
 
         // --- 初期化処理 (DBにデータがなければ書き込む) ---
         async function initDB() {
@@ -690,7 +699,7 @@
             document.getElementById("user-pass-input").value = "";
         }
 
-        // ▼▼▼ ユーザー監視 (強制ログアウト、権限反映、強制リロード) ▼▼▼
+        // ▼▼▼ ユーザー監視 (強制ログアウト、権限反映、強制リロード、通知) ▼▼▼
         let currentUserData = null; 
         function startUserListener(loginId) {
             onSnapshot(doc(db, "config", "users"), (docSnap) => {
@@ -700,6 +709,9 @@
                     if (!me) return; 
 
                     currentUserData = me; 
+                    // 権限の補完（古いデータ対策）
+                    if (me.canChat === undefined) me.canChat = true;
+                    if (me.canImage === undefined) me.canImage = true;
                     myPermissions = me; 
 
                     // 1. ログイン禁止チェック
@@ -716,15 +728,49 @@
                         menuChangeName.style.display = "block";
                     }
 
-                    // 3. 管理者権限剥奪時の強制退出 (管理者パネルにいる場合のみ)
+                    // 3. チャット・画像送信権限の反映
+                    if (me.canChat === false) {
+                        chatInput.disabled = true;
+                        chatInput.placeholder = "送信が制限されています";
+                        sendBtn.disabled = true;
+                        sendBtn.style.opacity = 0.5;
+                    } else {
+                        chatInput.disabled = false;
+                        chatInput.placeholder = "メッセージ...";
+                        sendBtn.disabled = false;
+                        sendBtn.style.opacity = 1;
+                    }
+                    
+                    if (me.canImage === false) {
+                        photoBtn.style.display = "none";
+                        // サイドバー等のボタンも制御
+                        if(btnCamera) btnCamera.style.display = "none";
+                        if(btnFile) btnFile.style.display = "none";
+                    } else {
+                        // photoBtnは本来CSSでnoneだが、JSで出すならblock
+                        // ここではchat内のボタンとして扱う（今回はチャット内画像ボタンの実装がないが、枠組みとして残す）
+                        // サイドバー復帰
+                        if(btnCamera) btnCamera.style.display = "flex";
+                        if(btnFile) btnFile.style.display = "flex";
+                    }
+
+                    // 4. 管理者からの強制通知
+                    if (me.alertMessage) {
+                        alert("【管理者からのお知らせ】\n" + me.alertMessage);
+                        // 通知済みフラグを消す
+                        updateDoc(doc(db, "config", "users"), {
+                            [loginId + ".alertMessage"]: deleteField()
+                        });
+                    }
+
+                    // 5. 管理者権限剥奪時の強制退出 (管理者パネルにいる場合のみ)
                     if (currentAdminSessionType === 'user' && !me.isAdmin) {
                         alert("管理者権限が解除されたため、ログアウトします。");
                         closeAdminPanel();
                     }
                     
-                    // 4. 強制リロード命令
+                    // 6. 強制リロード命令
                     if (me.needReload === true) {
-                        // フラグを戻してからリロード (無限ループ防止)
                         alert("管理者により更新が要求されました。");
                         setDoc(doc(db, "config", "users"), {
                             [loginId]: { needReload: false }
@@ -894,7 +940,8 @@
             try {
                 const newUser = {
                     name: newName, isAllowed: true, isAdmin: false, canChangeName: true,
-                    showNickname: true, canUnsend: true, lastDevice: "", needReload: false
+                    showNickname: true, canUnsend: true, needReload: false,
+                    canChat: true, canImage: true, lastDevice: ""
                 };
                 await setDoc(doc(db, "config", "users"), { [newId]: newUser }, { merge: true });
                 document.getElementById("new-user-id").value = "";
@@ -930,6 +977,17 @@
                 alert("再読み込みコマンドを送信しました。");
             } catch(e) { alert("送信失敗: "+e.message); }
         };
+
+        // ▼▼▼ 個人への通知送信 ▼▼▼
+        window.sendUserAlert = async function(id) {
+            const msg = prompt("このユーザーへの通知メッセージを入力:");
+            if(!msg) return;
+            try {
+                await setDoc(doc(db, "config", "users"), { [id]: { alertMessage: msg } }, { merge: true });
+                alert("送信しました");
+                logSystemEvent("通知", `通知送信: ${id} -> ${msg}`, currentLoginId || "admin");
+            } catch(e) { alert("送信失敗: " + e.message); }
+        }
         
         // --- フィルター管理ロジック ---
         window.addFilterWord = async function() {
@@ -989,7 +1047,7 @@
                     // データ補完
                     const perm = { 
                         isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, 
-                        ...u 
+                        canChat: true, canImage: true, ...u 
                     };
 
                     const isTargetProtected = (id === SUPER_ADMIN_ID || id === "admin");
@@ -1001,8 +1059,9 @@
 
                     const displayId = areIdsVisible ? id : "****";
                     
-                    // 削除ボタン・リロードボタン (スーパー管理者のみ)
+                    // 削除・リロード・通知ボタン
                     let actionBtns = "";
+                    actionBtns += `<span class="alert-icon" onclick="sendUserAlert('${id}')" title="通知を送る">🔔</span> `;
                     if (currentAdminSessionType === 'super') {
                          actionBtns += `<span class="refresh-icon" onclick="forceReloadUser('${id}')" title="強制リロード">🔄</span> `;
                          if(!isTargetProtected) {
@@ -1028,6 +1087,14 @@
                             <div class="setting-block" style="${opacityStyle}" ${clickAction}>
                                 <span class="status-label">管理者</span>
                                 <label class="toggle-switch"><input type="checkbox" ${perm.isAdmin ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'isAdmin', this)"><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
+                                <span class="status-label">チャット</span>
+                                <label class="toggle-switch"><input type="checkbox" ${perm.canChat ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canChat', this)"><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
+                                <span class="status-label">画像</span>
+                                <label class="toggle-switch"><input type="checkbox" ${perm.canImage ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canImage', this)"><span class="slider"></span></label>
                             </div>
                             <div class="setting-block" style="${opacityStyle}" ${clickAction}>
                                 <span class="status-label">名前変更</span>
@@ -1073,6 +1140,7 @@
                     let typeClass = "log-info";
                     if(data.type === "ログイン") typeClass = "log-login"; if(data.type === "警告") typeClass = "log-warn";
                     if(data.type === "削除") typeClass = "log-del"; if(data.type === "設定変更") typeClass = "log-change";
+                    if(data.type === "通知") typeClass = "log-alert";
                     const el = document.createElement("div"); el.className = "log-entry";
                     el.innerHTML = `<span class="log-time">[${date}]</span> <span class="log-type ${typeClass}">${escapeHtml(data.type)}</span> <span class="log-user">${escapeHtml(data.user)}</span> : ${escapeHtml(data.message)}`;
                     logDiv.appendChild(el);
@@ -1103,10 +1171,6 @@
 
         const chatOverlay = document.getElementById("chat-overlay");
         const msgList = document.getElementById("msg-list");
-        const chatInput = document.getElementById("chat-input");
-        const sendBtn = document.getElementById("send-btn");
-        const replyStatusBar = document.getElementById("reply-status-bar");
-        const replyTargetText = document.getElementById("reply-target-text");
         const myUid = localStorage.getItem('loilo_v2_uid') || Math.random().toString(36).substring(7); localStorage.setItem('loilo_v2_uid', myUid);
 
         document.getElementById("toggle-chat-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleChat(); });
@@ -1125,12 +1189,15 @@
         async function sendPayload(text="", file=null) {
             if(!text && !file) return;
             
+            // 権限チェック (念のため)
+            if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
+            if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
+
             // フィルタリング処理 (テキストのみ)
             let safeText = text;
             if(safeText) {
                 ngWords.forEach(badWord => {
                     if(badWord && safeText.includes(badWord)) {
-                        // 文字数分の*に置換
                         safeText = safeText.split(badWord).join("*".repeat(badWord.length));
                     }
                 });
@@ -1197,27 +1264,19 @@
             try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("失敗: " + e.message); }
         };
 
-        const btnText = document.getElementById("btn-text");
-        const colorPicker = document.getElementById("color-picker-overlay");
-        const cardEditor = document.getElementById("card-editor-overlay");
-        const cardTextarea = document.getElementById("card-textarea");
-        const btnCamera = document.getElementById("btn-camera");
-        const cameraOverlay = document.getElementById("camera-overlay");
-        const videoEl = document.getElementById("webcam-video");
-        const closeCameraBtn = document.getElementById("close-camera-btn");
         btnCamera.addEventListener("click", async () => {
             cameraOverlay.style.display = "flex";
             try { currentStream = await navigator.mediaDevices.getUserMedia({ video: true }); videoEl.srcObject = currentStream; } 
             catch (err) { alert("カメラ起動エラー"); cameraOverlay.style.display = "none"; }
         });
         window.closeCamera = function() { cameraOverlay.style.display = "none"; if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; } };
-        closeCameraBtn.addEventListener("click", closeCamera);
+        document.getElementById("close-camera-btn").addEventListener("click", closeCamera);
 
-        btnText.addEventListener("click", (e) => { e.stopPropagation(); colorPicker.style.display = "block"; });
-        window.openEditor = function(c) { selectedColor=c; colorPicker.style.display="none"; cardEditor.style.background=c; cardEditor.style.display="flex"; cardTextarea.value=""; cardTextarea.focus(); };
-        window.closeEditor = function() { cardEditor.style.display="none"; };
-        window.sendCardFromEditor = function() { if(cardTextarea.value.trim()){ closeEditor(); toggleChat(true); sendPayload(cardTextarea.value); } };
-        document.body.addEventListener("click", (e) => { if(!colorPicker.contains(e.target)&&!btnText.contains(e.target)) colorPicker.style.display="none"; });
+        document.getElementById("btn-text").addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("color-picker-overlay").style.display = "block"; });
+        window.openEditor = function(c) { selectedColor=c; document.getElementById("color-picker-overlay").style.display="none"; document.getElementById("card-editor-overlay").style.background=c; document.getElementById("card-editor-overlay").style.display="flex"; document.getElementById("card-textarea").value=""; document.getElementById("card-textarea").focus(); };
+        window.closeEditor = function() { document.getElementById("card-editor-overlay").style.display="none"; };
+        window.sendCardFromEditor = function() { if(document.getElementById("card-textarea").value.trim()){ closeEditor(); toggleChat(true); sendPayload(document.getElementById("card-textarea").value); } };
+        document.body.addEventListener("click", (e) => { if(!document.getElementById("color-picker-overlay").contains(e.target)&&!document.getElementById("btn-text").contains(e.target)) document.getElementById("color-picker-overlay").style.display="none"; });
 
         const trashBtn = document.getElementById("trash-btn");
         trashBtn.addEventListener("dblclick", async () => {
@@ -1247,32 +1306,54 @@
             } catch (e) { alert("削除エラー: " + e.message); }
         });
         
+        // --- CSV保存機能 ---
+        window.downloadChatCSV = async function() {
+            try {
+                const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
+                const snap = await getDocs(q);
+                let csvContent = "日時,名前,メッセージ,画像URL\n";
+                
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const date = d.createdAt ? d.createdAt.toDate().toLocaleString() : "";
+                    // CSVエスケープ: ダブルクォートを2つに、全体をダブルクォートで囲む
+                    const name = `"${(d.name || "").replace(/"/g, '""')}"`;
+                    const text = `"${(d.text || "").replace(/"/g, '""')}"`;
+                    const img = d.imageUrl ? "あり" : "";
+                    csvContent += `${date},${name},${text},${img}\n`;
+                });
+                
+                // BOM付与で文字化け防止
+                const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+                const blob = new Blob([bom, csvContent], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `chat_log_${new Date().getTime()}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch(e) { alert("CSV保存エラー: " + e.message); }
+        };
+        
         // --- 自動ログインチェック (最後に追加) ---
         async function checkAutoLogin() {
             const savedId = localStorage.getItem('loilo_saved_session_id');
             if(!savedId) return;
-
-            // ポータルを一瞬非表示にしておく (チラつき防止)
-            // viewPortal.style.display = "none"; 
-
             const docRef = doc(db, "config", "users");
             const docSnap = await getDoc(docRef);
             if(docSnap.exists()){
                  const allUsers = docSnap.data();
                  const user = allUsers[savedId];
-                 
                  if(user && user.isAllowed !== false){
                      console.log("セッション復帰: " + savedId);
                      currentUserData = user;
                      currentLoginId = savedId;
                      startUserListener(savedId);
-                     
                      viewPortal.style.display = "none";
                      viewList.style.display = "flex";
                      updateNameDisplay();
                      logSystemEvent("再接続", "自動ログイン成功", savedId);
                  } else {
-                     // ユーザーが無効または削除されている場合
                      localStorage.removeItem('loilo_saved_session_id');
                  }
             }
