@@ -364,6 +364,8 @@
                     <div class="admin-tab" onclick="switchAdminTab('chat')">チャット管理</div>
                     <div class="admin-tab" onclick="switchAdminTab('filter')">NGワード</div>
                     <div class="admin-tab" onclick="switchAdminTab('schedule')">時間割</div>
+                    <!-- 新規追加: サーバー切替タブ -->
+                    <div class="admin-tab" onclick="switchAdminTab('server')">サーバー切替</div>
                 </div>
                 <div id="tab-content-log" class="admin-tab-content active">
                     <div id="system-log-container"></div>
@@ -394,6 +396,22 @@
                                 <!-- JSで生成 -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                <!-- 新規追加: サーバー切替コンテンツ -->
+                <div id="tab-content-server" class="admin-tab-content">
+                    <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #f0f8ff;">
+                        <h4>現在の接続先: <span id="current-server-label" style="font-weight:bold; color:#007aff;">デフォルト</span></h4>
+                        <p style="font-size:0.8rem; color:#666;">※切り替えるとページが再読み込みされます。</p>
+                    </div>
+                    <div style="padding: 15px; border-bottom: 1px solid #ddd;">
+                        <strong>新規サーバー追加</strong><br>
+                        <input type="text" id="server-label-input" class="admin-input" placeholder="表示名 (例: 2組用サーバー)" style="width: 100%; margin-top:5px; margin-bottom:5px;">
+                        <textarea id="server-json-input" class="admin-input" placeholder='Firebaseの const firebaseConfig = {...} の中身、またはJSONを貼り付け' style="width: 100%; height: 100px; font-family: monospace; font-size: 0.8rem;"></textarea>
+                        <button class="admin-btn" onclick="addServerConfig()">リストに追加</button>
+                    </div>
+                    <div id="server-list-container" style="padding: 15px;">
+                        <!-- ここに登録済みリストが表示されます -->
                     </div>
                 </div>
             </div>
@@ -581,8 +599,10 @@
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, getDocs, deleteDoc, setDoc, limit, getDoc, deleteField } 
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        // Firebase設定
-        const firebaseConfig = {
+        // --- Firebase設定 (動的読み込み) ---
+        
+        // 1. デフォルト設定 (元々のコード)
+        const DEFAULT_CONFIG = {
           apiKey: "AIzaSyC9UgkUd62D79QfweQA1i0akH04kxwItD4",
           authDomain: "newchat-90c71.firebaseapp.com",
           projectId: "newchat-90c71",
@@ -592,6 +612,23 @@
           measurementId: "G-7SM0B9KDXE"
         };
 
+        // 2. 起動時の設定読み込みロジック
+        let firebaseConfig = DEFAULT_CONFIG;
+        let currentConfigLabel = "デフォルト (初期設定)";
+
+        try {
+            // localStorageから「現在選択中の設定」を取得
+            const savedActive = localStorage.getItem('loilo_active_server_config');
+            if (savedActive) {
+                const parsed = JSON.parse(savedActive);
+                firebaseConfig = parsed.config;
+                currentConfigLabel = parsed.label;
+            }
+        } catch(e) {
+            console.error("設定読み込みエラー", e);
+        }
+
+        // アプリ初期化
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -1095,6 +1132,7 @@
         window.switchAdminTab = function(tabName) {
             document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+            
             if(tabName === 'log') {
                 document.querySelector('.admin-tab:nth-child(1)').classList.add('active');
                 document.getElementById('tab-content-log').classList.add('active');
@@ -1107,6 +1145,12 @@
             } else if(tabName === 'schedule') {
                 document.querySelector('.admin-tab:nth-child(4)').classList.add('active');
                 document.getElementById('tab-content-schedule').classList.add('active');
+            } 
+            // 新規追加: サーバー切替
+            else if(tabName === 'server') {
+                document.querySelector('.admin-tab:nth-child(5)').classList.add('active');
+                document.getElementById('tab-content-server').classList.add('active');
+                renderServerList();
             }
         };
 
@@ -1383,7 +1427,27 @@
             }
             
             let imageUrl = null;
-            if(file) { imageUrl = await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(file);}); }
+            if(file) {
+    imageUrl = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // サイズを小さくする (最大幅 800px)
+                const scale = 800 / Math.max(img.width, img.height, 800);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                // 画質を0.5(50%)に落とす
+                resolve(canvas.toDataURL('image/jpeg', 0.5));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
             let senderName = currentUserData ? currentUserData.name : "Unknown";
             if (currentUserData && currentUserData.showNickname && myName) { senderName = `${myName}・${currentUserData.name}`; }
             const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
@@ -1453,10 +1517,18 @@
             try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("失敗: " + e.message); }
         };
 
+        // --- ★ カメラ機能修正 ★ ---
         btnCamera.addEventListener("click", async () => {
+            const cameraOverlay = document.getElementById("camera-overlay");
+            // ★修正: videoElをここで定義
+            const videoEl = document.getElementById("webcam-video");
+            
             cameraOverlay.style.display = "flex";
-            try { currentStream = await navigator.mediaDevices.getUserMedia({ video: true }); videoEl.srcObject = currentStream; } 
-            catch (err) { alert("カメラ起動エラー"); cameraOverlay.style.display = "none"; }
+            try { 
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: true }); 
+                videoEl.srcObject = currentStream; 
+            } 
+            catch (err) { alert("カメラ起動エラー: " + err.message); cameraOverlay.style.display = "none"; }
         });
         window.closeCamera = function() { cameraOverlay.style.display = "none"; if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; } };
         document.getElementById("close-camera-btn").addEventListener("click", closeCamera);
@@ -1505,14 +1577,12 @@
                 snap.forEach(doc => {
                     const d = doc.data();
                     const date = d.createdAt ? d.createdAt.toDate().toLocaleString() : "";
-                    // CSVエスケープ: ダブルクォートを2つに、全体をダブルクォートで囲む
                     const name = `"${(d.name || "").replace(/"/g, '""')}"`;
                     const text = `"${(d.text || "").replace(/"/g, '""')}"`;
                     const img = d.imageUrl ? "あり" : "";
                     csvContent += `${date},${name},${text},${img}\n`;
                 });
                 
-                // BOM付与で文字化け防止
                 const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
                 const blob = new Blob([bom, csvContent], { type: "text/csv" });
                 const url = URL.createObjectURL(blob);
@@ -1522,6 +1592,116 @@
                 a.click();
                 URL.revokeObjectURL(url);
             } catch(e) { alert("CSV保存エラー: " + e.message); }
+        };
+
+        // --- ★★★ サーバー管理機能 (JSロジック) ★★★ ---
+        
+        window.renderServerList = function() {
+            const listContainer = document.getElementById('server-list-container');
+            document.getElementById('current-server-label').textContent = currentConfigLabel;
+            
+            // 保存されたサーバーリストを取得
+            let serverList = [];
+            try {
+                serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]");
+            } catch(e){}
+
+            // デフォルト設定
+            let html = `
+                <div class="admin-chat-item" style="background:#e6f2ff; border:2px solid #007aff;">
+                    <div style="flex:1;">
+                        <div class="ac-info">初期設定</div>
+                        <div class="ac-content">デフォルト (初期設定)</div>
+                        <div style="font-size:0.7rem; color:#666; margin-top:2px;">${DEFAULT_CONFIG.projectId}</div>
+                    </div>
+                    <button class="admin-btn" onclick="activateServer(null)">これに切替</button>
+                </div>
+            `;
+
+            // 追加されたサーバー
+            serverList.forEach((srv, index) => {
+                html += `
+                    <div class="admin-chat-item">
+                        <div style="flex:1;">
+                            <div class="ac-info">追加サーバー ${index + 1}</div>
+                            <div class="ac-content">${escapeHtml(srv.label)}</div>
+                            <div style="font-size:0.7rem; color:#666; margin-top:2px;">${escapeHtml(srv.config.projectId || "ID不明")}</div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:5px;">
+                            <button class="admin-btn" onclick="activateServer(${index})">切替</button>
+                            <button class="admin-btn del" style="font-size:0.7rem; padding:2px 8px;" onclick="deleteServer(${index})">削除</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+        };
+
+        window.addServerConfig = function() {
+            const label = document.getElementById('server-label-input').value.trim();
+            let jsonStr = document.getElementById('server-json-input').value.trim();
+
+            if(!label || !jsonStr) { alert("表示名と設定コードを入力してください"); return; }
+
+            const start = jsonStr.indexOf('{');
+            const end = jsonStr.lastIndexOf('}');
+            if(start !== -1 && end !== -1) {
+                jsonStr = jsonStr.substring(start, end + 1);
+            }
+
+            try {
+                let configObj;
+                try {
+                    configObj = JSON.parse(jsonStr);
+                } catch(e) {
+                    configObj = new Function("return " + jsonStr)();
+                }
+
+                if(!configObj.apiKey || !configObj.projectId) {
+                    alert("有効なFirebase設定ではありません (apiKeyなどが不足)");
+                    return;
+                }
+
+                let serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]");
+                serverList.push({ label: label, config: configObj });
+                localStorage.setItem('loilo_server_list', JSON.stringify(serverList));
+
+                document.getElementById('server-label-input').value = "";
+                document.getElementById('server-json-input').value = "";
+                renderServerList();
+                alert("リストに追加しました");
+
+            } catch(e) {
+                alert("設定コードの読み取りに失敗しました。\n" + e.message);
+            }
+        };
+
+        window.deleteServer = function(index) {
+            if(!confirm("この設定をリストから削除しますか？")) return;
+            let serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]");
+            serverList.splice(index, 1);
+            localStorage.setItem('loilo_server_list', JSON.stringify(serverList));
+            renderServerList();
+        };
+
+        window.activateServer = function(index) {
+            if(index === null) {
+                if(!confirm("初期サーバーに戻します。リロードしますか？")) return;
+                localStorage.removeItem('loilo_active_server_config');
+                localStorage.removeItem('loilo_saved_session_id'); 
+                location.reload();
+            } else {
+                let serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]");
+                const target = serverList[index];
+                if(!target) return;
+
+                if(!confirm(`「${target.label}」に切り替えます。\nページがリロードされ、再ログインが必要になります。`)) return;
+                
+                localStorage.setItem('loilo_active_server_config', JSON.stringify(target));
+                localStorage.removeItem('loilo_saved_session_id');
+                location.reload();
+            }
         };
         
         // --- 自動ログインチェック (最後に追加) ---
