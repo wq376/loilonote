@@ -96,17 +96,25 @@
         .circle-wrapper::after { content: "◀"; color: #fff; font-size: 0.9rem; position: absolute; right: -18px; top: 12px; font-weight: bold; }
         .icon-label-white { color: #fff; font-size: 0.65rem; margin-top: 3px; font-weight: bold; }
         .header-info-edit { position: absolute; top: 15px; right: 20px; text-align: right; color: #fff; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; }
-        .user-name-area { font-size: 1.1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; position: relative;}
-        .user-name-area:hover { background: rgba(255,255,255,0.2); }
+        
+        /* ★名前エリアの変更 (背景削除) */
+        .user-name-area { 
+            font-size: 1.1rem; font-weight: bold; cursor: pointer; 
+            display: flex; align-items: center; 
+            background: transparent; /* 透明 */
+            padding: 0; /* パディングなし */
+            border-radius: 0; /* 角丸なし */
+            color: #fff; margin-right: 10px;
+        }
+        .user-name-area:hover { opacity: 0.8; }
+        
         .class-info-edit { font-size: 0.85rem; margin-top: 5px; opacity: 0.9; }
         .trash-area { position: absolute; bottom: 15px; right: 15px; display: flex; flex-direction: column; align-items: flex-end; color: #666; z-index: 50; cursor: pointer; transition: transform 0.1s; }
         .trash-area:active { transform: scale(0.95); }
         .trash-img { width: 50px; opacity: 0.6; }
         .saved-badge { background: #333; color: #fff; border: 1px solid #777; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; margin-top: 2px; }
 
-        /* ----------------------------------------------------
-           ★ ユーザーメニュー（ドロップダウン形式）
-           ---------------------------------------------------- */
+        /* ユーザーメニュー */
         .user-menu-dropdown {
             position: fixed; top: 60px; right: 20px; 
             background: #fff; color: #333;
@@ -124,45 +132,7 @@
         .profile-menu-item { padding: 15px 0; border-bottom: 1px solid #eee; color: #007aff; font-weight: bold; cursor: pointer; transition: background 0.1s; }
         .profile-menu-item:hover { background: #f0f8ff; }
         .profile-menu-item:last-child { border-bottom: none; }
-        .sub-status { font-size: 0.7rem; color: #f00; font-weight: normal; margin-top: 3px; }
-
-        /* ----------------------------------------------------
-           ★ アプリ設定モーダル
-           ---------------------------------------------------- */
-        #view-settings {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 4000;
-            display: none; align-items: center; justify-content: center;
-        }
-        .settings-modal {
-            width: 600px; height: 80%; background: #f5f5f7;
-            border-radius: 12px; display: flex; flex-direction: column;
-            overflow: hidden; animation: slideUp 0.3s ease-out;
-        }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .settings-header {
-            background: #f5f5f7; padding: 15px; border-bottom: 1px solid #ccc;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .settings-title { font-weight: bold; font-size: 1.1rem; flex: 1; text-align: center; }
-        .settings-close-btn { color: #007aff; cursor: pointer; font-weight: bold; }
-        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
-        .settings-section-title { font-size: 0.85rem; color: #666; margin: 20px 0 5px 15px; }
-        .settings-group { background: #fff; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
-        .settings-row {
-            padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 1rem;
-        }
-        .settings-row:last-child { border-bottom: none; }
-        .toggle-switch { position: relative; width: 50px; height: 30px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #34c759; } 
-        input:checked + .slider:before { transform: translateX(20px); }
-        .range-container { display: flex; align-items: center; gap: 10px; width: 50%; }
-        .range-slider { width: 100%; }
-        .setting-val { color: #666; }
-        .version-text { color: #888; font-size: 0.9rem; margin-top: 20px; text-align: center; }
+        .sub-status { font-size: 0.7rem; color: #f00; font-weight: normal; margin-top: 3px; display: none; }
 
         /* チャット (提出箱) */
         #chat-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 75%; background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: none; flex-direction: column; z-index: 200; overflow: hidden; }
@@ -186,8 +156,6 @@
         #loading-indicator { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #007aff; animation: load 1s infinite linear; display: none; z-index: 300; }
         @keyframes load { 0% { width: 0%; left: 0; } 50% { width: 50%; left: 25%; } 100% { width: 100%; left: 100%; } }
         .read-label { font-size: 0.7rem; color: #888; margin-top: 2px; font-weight: bold; text-align: right; cursor: help; }
-        
-        /* 送信取消ボタン */
         .msg-unsend-btn { color: #888; cursor: pointer; margin-left: 10px; font-size: 0.8rem; border: none; background: none; font-weight: bold; }
         .msg-unsend-btn:hover { color: #f00; }
 
@@ -217,28 +185,23 @@
         .user-control-row { width: 100%; display: flex; flex-direction: column; padding: 15px; border-bottom: 1px solid #eee; gap: 10px; }
         .user-info-row { display: flex; justify-content: space-between; align-items: center; }
         .user-settings-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        
+        .setting-block { display: flex; align-items: center; gap: 8px; background: #f5f5f7; padding: 5px 10px; border-radius: 6px; border: 1px solid #ddd; }
+        .status-label { font-size: 0.8rem; font-weight: bold; color: #555; }
         .user-info-admin { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         .edit-icon, .delete-icon, .alert-icon { cursor: pointer; font-size: 1.2rem; opacity: 0.6; }
         .edit-icon:hover, .delete-icon:hover, .alert-icon:hover { opacity: 1; }
-        
         .device-info { font-size: 0.8rem; color: #666; font-weight: normal; margin-left: 10px; }
-        .setting-block { display: flex; align-items: center; gap: 8px; background: #f5f5f7; padding: 5px 10px; border-radius: 6px; border: 1px solid #ddd; }
-        .status-label { font-size: 0.8rem; font-weight: bold; color: #555; }
 
-        /* ログエリア */
         .log-entry { font-family: monospace; font-size: 0.8rem; border-bottom: 1px solid #e0e0e0; padding: 6px 0; line-height: 1.4; }
         .log-time { color: #007aff; font-weight: bold; margin-right: 8px; }
         .log-type { display: inline-block; padding: 2px 6px; border-radius: 4px; color: #fff; font-size: 0.7rem; margin-right: 5px; }
         .log-login { background: #4caf50; } .log-warn { background: #ff9800; } .log-del { background: #f44336; } .log-change { background: #2196f3; } .log-chat { background: #9c27b0; } .log-add { background: #00bcd4; } .log-alert { background: #e91e63; }
-
-        /* チャット管理用リスト */
+        
         .admin-chat-item { background: #fff; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: flex-start; }
         .ac-info { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
         .ac-content { font-size: 0.95rem; font-weight: bold; white-space: pre-wrap; word-break: break-all; }
         .ac-delete-btn { background: #ff3b30; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
         
-        /* フィルター管理用 */
         .filter-item { background: #fff; padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px; display: inline-flex; align-items: center; margin: 4px; font-weight: bold; color: #333; }
         .filter-item .del-btn { margin-left: 8px; cursor: pointer; color: #ff3b30; font-weight: bold; font-size: 1.1rem; }
         .filter-item .del-btn:hover { opacity: 0.7; }
@@ -273,21 +236,162 @@
             border-radius: 12px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             text-align: center; color: #333;
         }
-        .schedule-table {
-            width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1rem;
-        }
-        .schedule-table th, .schedule-table td {
-            border: 1px solid #ddd; padding: 15px; text-align: center;
-        }
+        .schedule-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1rem; }
+        .schedule-table th, .schedule-table td { border: 1px solid #ddd; padding: 15px; text-align: center; }
         .schedule-table th { background: #f0f0f0; color: #555; }
         .schedule-table td { background: #fff; }
-        .close-schedule-btn {
-            padding: 10px 30px; background: #007aff; color: #fff; border: none; border-radius: 20px;
-            font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 10px;
-        }
-        /* 管理画面用テーブル入力 */
+        .close-schedule-btn { padding: 10px 30px; background: #007aff; color: #fff; border: none; border-radius: 20px; font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .admin-schedule-input { width: 100%; border: none; text-align: center; font-family: inherit; font-size: 1rem; background: transparent; outline: none; }
         .admin-schedule-input:focus { background: #e6f2ff; }
+
+        /* スイッチ系共通 */
+        .toggle-switch { position: relative; width: 50px; height: 30px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #34c759; } 
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* アプリ設定モーダル */
+        #view-settings { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 4000; display: none; align-items: center; justify-content: center; }
+        .settings-modal { width: 600px; height: 80%; background: #f5f5f7; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .settings-header { background: #f5f5f7; padding: 15px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
+        .settings-title { font-weight: bold; font-size: 1.1rem; flex: 1; text-align: center; }
+        .settings-close-btn { color: #007aff; cursor: pointer; font-weight: bold; }
+        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .settings-section-title { font-size: 0.85rem; color: #666; margin: 20px 0 5px 15px; }
+        .settings-group { background: #fff; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+        .settings-row { padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 1rem; }
+        .settings-row:last-child { border-bottom: none; }
+        .range-container { display: flex; align-items: center; gap: 10px; width: 50%; }
+        .range-slider { width: 100%; }
+        .setting-val { color: #666; }
+        .version-text { color: #888; font-size: 0.9rem; margin-top: 20px; text-align: center; }
+
+        /* --- 新規: サービス状況画面 --- */
+        #view-service-status {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f5f5f7; z-index: 5000;
+            display: none; flex-direction: column; overflow-y: auto;
+            font-family: "BIZ UDGothic", sans-serif;
+        }
+        .status-header {
+            background: #fff; padding: 20px; border-bottom: 1px solid #ddd;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .status-title-large { font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        .status-close-btn { 
+            font-size: 1rem; color: #007aff; cursor: pointer; font-weight: bold; border: 1px solid #007aff; 
+            padding: 5px 15px; border-radius: 4px; background: #fff; 
+        }
+        .status-content { max-width: 800px; margin: 0 auto; padding: 30px 20px; width: 100%; box-sizing: border-box; }
+
+        .status-main-summary { margin-bottom: 40px; }
+        .status-icon-large { font-size: 1.5rem; }
+        .s-ok { color: #28a745; } .s-warn { color: #ffc107; } .s-error { color: #dc3545; }
+
+        /* メンテナンスお知らせボックス */
+        .maintenance-box {
+            background: #fff9db; border: 1px solid #ffeeba; border-radius: 6px;
+            padding: 20px; margin-bottom: 30px; text-align: center;
+            display: none; /* デフォルト非表示 */
+        }
+        .maint-title { font-weight: bold; font-size: 1.1rem; color: #12264d; margin-bottom: 10px; }
+        .maint-sub { font-weight: bold; margin-bottom: 5px; }
+        .maint-time { font-size: 1.2rem; margin: 10px 0; }
+
+        /* 各サーバーのステータスカード */
+        .status-item-card {
+            background: #fff; border: 1px solid #ddd; border-radius: 8px;
+            padding: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .status-check-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; font-size: 0.9rem; font-weight: bold; }
+        .sc-ok { background: #28a745; } .sc-warn { background: #ffc107; } .sc-error { background: #dc3545; }
+
+        .status-text-area { flex: 1; }
+        .status-label { font-weight: bold; font-size: 1rem; color: #333; }
+        .status-desc { font-size: 0.85rem; color: #666; margin-top: 2px; }
+
+        /* 管理画面用ステータス設定 */
+        .admin-status-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .admin-status-select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+
+
+/* 資料箱モーダル用スタイル */
+#view-material-box { display: none; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+
+.material-box-modal {
+    background: #f2f2f7; width: 600px; max-width: 90%; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    animation: popIn 0.2s ease-out;
+}
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.material-header {
+    background: #fff; padding: 15px 20px; border-bottom: 1px solid #ddd;
+    display: flex; justify-content: space-between; align-items: center;
+    color: #333; font-weight: bold; font-size: 1.1rem;
+}
+.close-material-btn {
+    font-size: 1.8rem; cursor: pointer; color: #888; line-height: 1;
+}
+.close-material-btn:hover { color: #333; }
+
+.material-grid {
+    padding: 30px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+}
+
+.material-btn {
+    background: #fff; border-radius: 12px; padding: 20px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+    border: 1px solid #e0e0e0; height: 120px;
+}
+.material-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.material-btn:active { transform: scale(0.98); }
+
+.m-icon { font-size: 2.5rem; font-weight: bold; margin-bottom: 10px; color: #333; }
+.m-label { font-size: 1.2rem; font-weight: bold; color: #333; margin-bottom: 5px; }
+.m-desc { font-size: 0.8rem; color: #888; }
+
+
+/* 資料箱内のアイコン画像用サイズ調整 */
+.box-icon-img {
+    width: 40px; 
+    height: 40px; 
+    object-fit: contain;
+}
+
+
+/* アップデート情報用スタイル */
+.update-list { display: flex; flex-direction: column; }
+.update-item { border-bottom: 1px solid #eee; padding: 20px 0; }
+.update-item:last-child { border-bottom: none; }
+
+.u-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.u-tag { font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; color: #fff; }
+.u-tag.new { background: #ff3b30; }
+.u-date { font-size: 0.85rem; color: #888; font-family: monospace; }
+
+.u-title { font-size: 1.1rem; font-weight: bold; color: #333; margin-bottom: 8px; }
+.u-body { font-size: 0.95rem; color: #555; line-height: 1.6; }
+
+/* アップデート管理用スタイル */
+.admin-upd-item {
+    background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 6px;
+    position: relative;
+}
+.admin-upd-header { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
+.admin-upd-title { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 5px; }
+.admin-upd-body { font-size: 0.9rem; color: #555; white-space: pre-wrap; }
+.admin-upd-del {
+    position: absolute; top: 10px; right: 10px;
+    background: #ff3b30; color: #fff; border: none; border-radius: 4px; 
+    padding: 3px 10px; cursor: pointer; font-size: 0.8rem;
+}
 
     </style>
 </head>
@@ -341,7 +445,6 @@
             </div>
         </div>
         
-        <!-- 新規ユーザー追加エリア (通常管理者は非表示にされる) -->
         <div class="add-user-area" id="admin-add-area">
             <strong>新規追加:</strong>
             <input type="text" id="new-user-id" class="admin-input" placeholder="ID (パスワード)" style="width:120px;">
@@ -354,9 +457,7 @@
 
         <div class="admin-layout">
             <div class="admin-left-col">
-                <div class="admin-user-list" id="admin-user-list">
-                    <!-- ユーザーリストがここに入る -->
-                </div>
+                <div class="admin-user-list" id="admin-user-list"></div>
             </div>
             <div class="admin-right-col">
                 <div class="admin-tabs">
@@ -364,9 +465,28 @@
                     <div class="admin-tab" onclick="switchAdminTab('chat')">チャット管理</div>
                     <div class="admin-tab" onclick="switchAdminTab('filter')">NGワード</div>
                     <div class="admin-tab" onclick="switchAdminTab('schedule')">時間割</div>
-                    <!-- 新規追加: サーバー切替タブ -->
                     <div class="admin-tab" onclick="switchAdminTab('server')">サーバー切替</div>
+                    <!-- 新規追加 -->
+                    <div class="admin-tab" onclick="switchAdminTab('status')">サービス状況</div>
+                    <div class="admin-tab" onclick="switchAdminTab('update')">お知らせ管理</div>
                 </div>
+                                    <!-- アップデート管理タブの内容 -->
+<div id="tab-content-update" class="admin-tab-content">
+    <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #f9f9f9;">
+        <h4>新規お知らせ追加</h4>
+        <input type="text" id="upd-input-date" class="admin-input" placeholder="日付 (例: 2025.12.25)" style="width: 120px; margin-bottom: 5px;">
+        <label style="margin-left:10px;"><input type="checkbox" id="upd-input-new"> NEWタグをつける</label>
+        <br>
+        <input type="text" id="upd-input-title" class="admin-input" placeholder="タイトル (例: 冬の大型アップデート)" style="width: 100%; margin-bottom: 5px;">
+        <textarea id="upd-input-body" class="admin-input" placeholder="内容 (改行は反映されます)" style="width: 100%; height: 80px;"></textarea>
+        <div style="text-align: right; margin-top: 5px;">
+            <button class="admin-btn" onclick="addUpdateItem()">追加する</button>
+        </div>
+    </div>
+    <div id="admin-update-list-container" style="padding: 15px;">
+        <!-- JSでリスト生成 -->
+    </div>
+</div>
                 <div id="tab-content-log" class="admin-tab-content active">
                     <div id="system-log-container"></div>
                 </div>
@@ -380,9 +500,7 @@
                         <input type="text" id="new-filter-word" placeholder="不適切ワードを追加" class="admin-input" style="flex:1;">
                         <button class="admin-btn" onclick="addFilterWord()">追加</button>
                     </div>
-                    <div id="filter-word-list" style="padding:15px;">
-                        <!-- NGワードリスト -->
-                    </div>
+                    <div id="filter-word-list" style="padding:15px;"></div>
                     <div style="padding:10px; color:#888; font-size:0.8rem;">※ ここに追加された言葉は送信時に「***」に置換されます。</div>
                 </div>
                 <div id="tab-content-schedule" class="admin-tab-content">
@@ -392,13 +510,10 @@
                     <div id="admin-schedule-container" style="padding:0 15px;">
                         <table class="schedule-table">
                             <thead><tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr></thead>
-                            <tbody id="admin-schedule-body">
-                                <!-- JSで生成 -->
-                            </tbody>
+                            <tbody id="admin-schedule-body"></tbody>
                         </table>
                     </div>
                 </div>
-                <!-- 新規追加: サーバー切替コンテンツ -->
                 <div id="tab-content-server" class="admin-tab-content">
                     <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #f0f8ff;">
                         <h4>現在の接続先: <span id="current-server-label" style="font-weight:bold; color:#007aff;">デフォルト</span></h4>
@@ -410,8 +525,25 @@
                         <textarea id="server-json-input" class="admin-input" placeholder='Firebaseの const firebaseConfig = {...} の中身、またはJSONを貼り付け' style="width: 100%; height: 100px; font-family: monospace; font-size: 0.8rem;"></textarea>
                         <button class="admin-btn" onclick="addServerConfig()">リストに追加</button>
                     </div>
-                    <div id="server-list-container" style="padding: 15px;">
-                        <!-- ここに登録済みリストが表示されます -->
+                    <div id="server-list-container" style="padding: 15px;"></div>
+                </div>
+                <!-- 新規: サービス状況管理タブ -->
+                <div id="tab-content-status" class="admin-tab-content">
+                    <div style="padding:15px; background:#f9f9f9; border-bottom:1px solid #ddd;">
+                        <h4>メンテナンス表示設定</h4>
+                        <div style="margin-bottom:10px;">
+                            <label><input type="checkbox" id="adm-maint-active"> メンテナンス情報を表示する</label>
+                        </div>
+                        <input type="text" id="adm-maint-title" class="admin-input" placeholder="タイトル (例: メンテナンスのお知らせ)" style="width:100%; margin-bottom:5px;">
+                        <input type="text" id="adm-maint-msg" class="admin-input" placeholder="メッセージ (例: 下記時間のどこかで接続できない...)" style="width:100%; margin-bottom:5px;">
+                        <input type="text" id="adm-maint-time" class="admin-input" placeholder="日時 (例: 2026/1/5 22:00 〜 23:00)" style="width:100%;">
+                    </div>
+                    <div style="padding:15px;" id="admin-status-list">
+                        <h4>各サービスの稼働状況</h4>
+                        <!-- JSで自動生成 -->
+                    </div>
+                    <div style="padding:15px; text-align:right;">
+                        <button class="admin-btn" onclick="saveServiceStatusConfig()">設定を保存して反映</button>
                     </div>
                 </div>
             </div>
@@ -490,7 +622,7 @@
                 <div class="icon-btn" onclick="openSchedule()"><img src="test.png" alt="テスト"></div>
             </div>
             <div class="sidebar-lower">
-                <div class="circle-wrapper" onclick="window.open('https://copilot.microsoft.com', '_blank')">
+                <div class="circle-wrapper" onclick="openMaterialBox()">
                     <div class="circle-icon"><img src="si.png" alt="資料箱"></div><div class="icon-label-white">資料箱</div>
                 </div>
                 <div class="circle-wrapper" id="toggle-chat-btn"><div class="circle-icon"><img src="te.png" alt="提出"></div><div class="icon-label-white">提出</div></div>
@@ -544,7 +676,6 @@
                 <button class="close-schedule-btn" onclick="closeSchedule()">閉じる</button>
             </div>
         </div>
-
     </div>
 
     <!-- ユーザープロフィール ドロップダウンメニュー -->
@@ -557,11 +688,72 @@
         <div class="profile-menu-item" onclick="window.open('https://help.loilonote.app/', '_blank')">サポート</div>
         <div class="profile-menu-item">チュートリアルを見る</div>
         <div class="profile-menu-item" onclick="openSettings()">アプリ設定</div>
-        <div class="profile-menu-item" onclick="alert('システムは正常に稼働しています。\n応答時間: 12ms')">サービス状況<div class="sub-status">メンテナンス予定があります</div></div>
+        <div class="profile-menu-item" onclick="openUpdateInfo()">
+    アップデート情報
+    <div class="sub-status" style="display:block; color:#007aff;">新機能が追加されました</div>
+</div>
+        <!-- ★修正: サービス状況画面を開く -->
+        <div class="profile-menu-item" onclick="openServiceStatus()">サービス状況<div class="sub-status" id="menu-sub-status"></div></div>
         <div class="profile-menu-item" id="menu-change-name" onclick="changeNameAction()">名前を変更</div>
         <div class="profile-menu-item" onclick="goToAdminLoginFromMenu()">管理者ログイン</div>
         <div class="profile-menu-item" onclick="performLogout()" style="color:#ff3b30;">ログアウト</div>
     </div>
+
+<!-- 修正後: 中身を空にしてIDを振る -->
+<div id="view-update-info" class="overlay-screen" onclick="closeUpdateInfo()">
+    <div class="settings-modal" onclick="event.stopPropagation()">
+        <div class="settings-header">
+            <span class="settings-close-btn" onclick="closeUpdateInfo()">閉じる</span>
+            <span style="width:40px;"></span>
+        </div>
+        <div class="settings-content" style="padding: 0 20px;">
+            <!-- ここにIDを追加し、中身はJSで生成するので空にする -->
+            <div class="update-list" id="user-update-list">
+                <div style="padding:20px; text-align:center; color:#888;">読み込み中...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- 資料箱（AIリンク集）モーダル -->
+<div id="view-material-box" class="overlay-screen" onclick="closeMaterialBox()">
+    <div class="material-box-modal" onclick="event.stopPropagation()">
+        <div class="material-header">
+            <h3>資料箱 (AIツール)</h3>
+            <span class="close-material-btn" onclick="closeMaterialBox()">×</span>
+        </div>
+<div class="material-btn" onclick="window.open('https://grok.com/', '_blank')">
+    <span class="m-icon">
+        <img src="grok.png" alt="Grok" class="box-icon-img">
+    </span>
+    <span class="m-label">Grok</span>
+    <span class="m-desc">xAI</span>
+</div>
+            <div class="material-btn" onclick="window.open('https://ai.rakuten.co.jp/chat', '_blank')">
+    <span class="m-icon">
+        <img src="rakuten.jpg" alt="Rakuten AI" class="box-icon-img">
+    </span>
+                <span class="m-label">Rakuten AI</span>
+                <span class="m-desc">楽天</span>
+            </div>
+            <div class="material-btn" onclick="window.open('https://felo.ai/ja/search', '_blank')">
+    <span class="m-icon">
+        <img src="felo.jpg" alt="Felo" class="box-icon-img">
+    </span>
+                <span class="m-label">Felo</span>
+                <span class="m-desc">検索AI</span>
+            </div>
+            <div class="material-btn" onclick="window.open('https://www.perplexity.ai/', '_blank')">
+    <span class="m-icon">
+        <img src="Perplexity.png" alt="Perplexity" class="box-icon-img">
+    </span>
+                <span class="m-label">Perplexity</span>
+                <span class="m-desc">対話型検索</span>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- アプリ設定モーダル -->
     <div id="view-settings">
@@ -588,8 +780,40 @@
                 <div class="settings-group"><div class="settings-row"><span>テキストの読み上げ</span><span style="color:#ccc;">></span></div></div>
                 <div class="settings-section-title">試験中の機能</div>
                 <div class="settings-group"><div class="settings-row"><span>キーボード操作</span><label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label></div></div>
-                <div class="version-text">バージョン v5.28</div>
+                <div class="version-text">バージョン v23.27</div>
                 <div class="version-text">アプリについて</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新規: サービス状況画面 -->
+    <div id="view-service-status">
+        <div class="status-header">
+            <div class="status-title-large">
+                <span id="overall-icon" class="s-ok">●</span>
+                <span id="overall-text">20:25 現在、すべてのサービスが正常に稼働しています</span>
+            </div>
+            <button class="status-close-btn" onclick="document.getElementById('view-service-status').style.display='none'">閉じる</button>
+        </div>
+        <div class="status-content">
+            <div class="status-main-summary">
+                タイムゾーン: JST (GMT+09:00)
+            </div>
+
+            <!-- メンテナンスお知らせエリア -->
+            <div id="status-maintenance-area" class="maintenance-box">
+                <div class="maint-title" id="disp-maint-title">メンテナンスのお知らせ</div>
+                <div class="maint-sub" id="disp-maint-msg">メンテナンス時間は多少前後することがございます</div>
+                <div style="background:#fff; padding:15px; border:1px solid #eee; margin-top:10px;">
+                    <strong>対象サービス</strong>
+                    <p>下記時間のどこかでサーバーに接続できないおそれがあります。</p>
+                    <div class="maint-time" id="disp-maint-time">2026/1/5 22:00 〜 23:00</div>
+                </div>
+            </div>
+
+            <!-- サービスリスト -->
+            <div id="service-status-list">
+                <!-- JSで生成 -->
             </div>
         </div>
     </div>
@@ -599,9 +823,6 @@
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, getDocs, deleteDoc, setDoc, limit, getDoc, deleteField } 
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        // --- Firebase設定 (動的読み込み) ---
-        
-        // 1. デフォルト設定 (元々のコード)
         const DEFAULT_CONFIG = {
           apiKey: "AIzaSyC9UgkUd62D79QfweQA1i0akH04kxwItD4",
           authDomain: "newchat-90c71.firebaseapp.com",
@@ -612,27 +833,21 @@
           measurementId: "G-7SM0B9KDXE"
         };
 
-        // 2. 起動時の設定読み込みロジック
         let firebaseConfig = DEFAULT_CONFIG;
         let currentConfigLabel = "デフォルト (初期設定)";
 
         try {
-            // localStorageから「現在選択中の設定」を取得
             const savedActive = localStorage.getItem('loilo_active_server_config');
             if (savedActive) {
                 const parsed = JSON.parse(savedActive);
                 firebaseConfig = parsed.config;
                 currentConfigLabel = parsed.label;
             }
-        } catch(e) {
-            console.error("設定読み込みエラー", e);
-        }
+        } catch(e) { console.error("設定読み込みエラー", e); }
 
-        // アプリ初期化
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 初期ユーザーデータ (DBが空の場合のみ使用) ---
         const INITIAL_USERS = {
             "1726": { name: "田中大樹", isAllowed: true, isAdmin: true, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
             "6351": { name: "西尾青葉", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
@@ -648,7 +863,6 @@
         const SUPER_ADMIN_PASS = "1726";
         const ADMIN_PASS = "admin";
 
-        // 変数
         let currentStream = null;
         let selectedColor = '#ffcdd2';
         let myName = localStorage.getItem('loilo_v2_name') || "ここに名前を入力";
@@ -656,11 +870,10 @@
         let currentLoginId = ""; 
         let replyTargetId = null;
         let myPermissions = { isAllowed: true, isAdmin: false, canChangeName: true, canUnsend: true, canChat: true, canImage: true }; 
-        let currentAdminSessionType = 'none'; // 'super' | 'user' | 'none'
-        let areIdsVisible = false; // ID表示状態
-        let ngWords = []; // NGワードリスト
+        let currentAdminSessionType = 'none'; 
+        let areIdsVisible = false; 
+        let ngWords = []; 
 
-        // 画面要素
         const viewPortal = document.getElementById("view-portal");
         const viewUserLogin = document.getElementById("view-user-login");
         const viewAdminLogin = document.getElementById("view-admin-login");
@@ -686,18 +899,14 @@
         const replyStatusBar = document.getElementById("reply-status-bar");
         const replyTargetText = document.getElementById("reply-target-text");
 
-        // --- 初期化処理 (DBにデータがなければ書き込む) ---
         async function initDB() {
             try {
-                // ユーザーデータ
                 const docRef = doc(db, "config", "users");
                 const docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     await setDoc(docRef, INITIAL_USERS);
                     console.log("初期ユーザーデータを構築しました");
                 }
-
-                // フィルターデータ
                 const filterRef = doc(db, "config", "filters");
                 const filterSnap = await getDoc(filterRef);
                 if (!filterSnap.exists()) {
@@ -708,15 +917,13 @@
         }
         initDB();
 
-        // フィルター設定の監視
         onSnapshot(doc(db, "config", "filters"), (docSnap) => {
             if (docSnap.exists()) {
                 ngWords = docSnap.data().words || [];
-                renderFilterList(); // 管理者画面が開いていれば更新
+                renderFilterList(); 
             }
         });
 
-        // 画面遷移
         window.goToUserLogin = function() { viewPortal.style.display = "none"; viewUserLogin.style.display = "flex"; document.getElementById("user-pass-input").focus(); };
         window.goToAdminLogin = function() { viewPortal.style.display = "none"; viewAdminLogin.style.display = "flex"; document.getElementById("admin-pass-input").focus(); };
         
@@ -748,49 +955,36 @@
         window.goToEditMode = function() { document.getElementById('view-list').style.display = 'none'; document.getElementById('view-edit').style.display = 'block'; };
         window.goToListMode = function() { document.getElementById('view-edit').style.display = 'none'; document.getElementById('view-list').style.display = 'flex'; toggleChat(false); closeCamera(); closeColorPicker(); closeEditor(); };
 
-        // ユーザーログイン
         document.getElementById("user-login-btn").addEventListener("click", performUserLogin);
         document.getElementById("user-pass-input").addEventListener("keypress", (e) => { if(e.key === "Enter") performUserLogin(); });
 
         async function performUserLogin() {
             const val = document.getElementById("user-pass-input").value;
-            
-            // DBからユーザー情報を取得
             const docRef = doc(db, "config", "users");
             const docSnap = await getDoc(docRef);
-            
             if (docSnap.exists()) {
                 const allUsers = docSnap.data();
                 const user = allUsers[val];
-                
                 if (user) {
                     if(user.isAllowed === false) {
                         document.getElementById("user-login-error").textContent = "このアカウントはロックされています";
                         return;
                     }
-                    
-                    // ログイン成功時にIDを保存
                     localStorage.setItem('loilo_saved_session_id', val);
-
                     currentUserData = user;
                     currentLoginId = val;
-                    
-                    // リアルタイム監視開始
                     startUserListener(val);
                     logSystemEvent("ログイン", "ユーザーログイン成功", val);
-
                     viewUserLogin.style.display = "none";
                     viewList.style.display = "flex";
                     updateNameDisplay();
                     return;
                 }
             }
-            
             document.getElementById("user-login-error").textContent = "パスワードが違います";
             document.getElementById("user-pass-input").value = "";
         }
 
-        // ▼▼▼ ユーザー監視 (強制ログアウト、権限反映、強制リロード、通知) ▼▼▼
         let currentUserData = null; 
         function startUserListener(loginId) {
             onSnapshot(doc(db, "config", "users"), (docSnap) => {
@@ -798,78 +992,42 @@
                     const allUsers = docSnap.data();
                     const me = allUsers[loginId];
                     if (!me) return; 
-
                     currentUserData = me; 
-                    // 権限の補完（古いデータ対策）
                     if (me.canChat === undefined) me.canChat = true;
                     if (me.canImage === undefined) me.canImage = true;
                     myPermissions = me; 
-
-                    // 1. ログイン禁止チェック
                     if (me.isAllowed === false) {
                         alert("このアカウントでのログインは禁止されています。\n再読み込みしてください。");
-                        localStorage.removeItem('loilo_saved_session_id'); // セッション破棄
+                        localStorage.removeItem('loilo_saved_session_id');
                         location.reload(); 
                     }
-
-                    // 2. 名前変更ボタン制御
                     if (me.canChangeName === false) {
                         menuChangeName.style.display = "none";
                     } else {
                         menuChangeName.style.display = "block";
                     }
-
-                    // 3. チャット・画像送信権限の反映
                     if (me.canChat === false) {
-                        chatInput.disabled = true;
-                        chatInput.placeholder = "送信が制限されています";
-                        sendBtn.disabled = true;
-                        sendBtn.style.opacity = 0.5;
+                        chatInput.disabled = true; chatInput.placeholder = "送信が制限されています"; sendBtn.disabled = true; sendBtn.style.opacity = 0.5;
                     } else {
-                        chatInput.disabled = false;
-                        chatInput.placeholder = "メッセージ...";
-                        sendBtn.disabled = false;
-                        sendBtn.style.opacity = 1;
+                        chatInput.disabled = false; chatInput.placeholder = "メッセージ..."; sendBtn.disabled = false; sendBtn.style.opacity = 1;
                     }
-                    
                     if (me.canImage === false) {
-                        photoBtn.style.display = "none";
-                        // サイドバー等のボタンも制御
-                        if(btnCamera) btnCamera.style.display = "none";
-                        if(btnFile) btnFile.style.display = "none";
+                        photoBtn.style.display = "none"; if(btnCamera) btnCamera.style.display = "none"; if(btnFile) btnFile.style.display = "none";
                     } else {
-                        // photoBtnは本来CSSでnoneだが、JSで出すならblock
-                        // ここではchat内のボタンとして扱う（今回はチャット内画像ボタンの実装がないが、枠組みとして残す）
-                        // サイドバー復帰
-                        if(btnCamera) btnCamera.style.display = "flex";
-                        if(btnFile) btnFile.style.display = "flex";
+                        if(btnCamera) btnCamera.style.display = "flex"; if(btnFile) btnFile.style.display = "flex";
                     }
-
-                    // 4. 管理者からの強制通知
                     if (me.alertMessage) {
                         alert("【管理者からのお知らせ】\n" + me.alertMessage);
-                        // 通知済みフラグを消す
-                        updateDoc(doc(db, "config", "users"), {
-                            [loginId + ".alertMessage"]: deleteField()
-                        });
+                        updateDoc(doc(db, "config", "users"), { [loginId + ".alertMessage"]: deleteField() });
                     }
-
-                    // 5. 管理者権限剥奪時の強制退出 (管理者パネルにいる場合のみ)
                     if (currentAdminSessionType === 'user' && !me.isAdmin) {
                         alert("管理者権限が解除されたため、ログアウトします。");
                         closeAdminPanel();
                     }
-                    
-                    // 6. 強制リロード命令
                     if (me.needReload === true) {
                         alert("管理者により更新が要求されました。");
-                        setDoc(doc(db, "config", "users"), {
-                            [loginId]: { needReload: false }
-                        }, { merge: true }).then(() => {
-                            location.reload();
-                        });
+                        setDoc(doc(db, "config", "users"), { [loginId]: { needReload: false } }, { merge: true }).then(() => { location.reload(); });
                     }
-                    
                     updateNameDisplay();
                 }
             });
@@ -877,27 +1035,17 @@
         }
         
         async function updateDeviceInfo(id, ua) {
-            try {
-                await setDoc(doc(db, "config", "users"), {
-                    [id]: { lastDevice: ua }
-                }, { merge: true });
-            } catch(e) {}
+            try { await setDoc(doc(db, "config", "users"), { [id]: { lastDevice: ua } }, { merge: true }); } catch(e) {}
         }
 
         async function logSystemEvent(type, msg, user) {
             try {
                 let dispName = user;
                 if(currentUserData && currentUserData.name) dispName = currentUserData.name;
-                await addDoc(collection(db, "system_logs"), {
-                    type: type,
-                    message: msg,
-                    user: dispName + `(${user})`,
-                    timestamp: serverTimestamp()
-                });
+                await addDoc(collection(db, "system_logs"), { type: type, message: msg, user: dispName + `(${user})`, timestamp: serverTimestamp() });
             } catch(e) {}
         }
 
-        // 名前更新
         const currentNameSpan = document.getElementById("current-name");
         const nameRefs = document.querySelectorAll(".display-name-ref");
         const dateSpan = document.getElementById("current-date");
@@ -907,16 +1055,13 @@
         function updateNameDisplay() {
             if(!currentUserData) return;
             let displayName = currentUserData.name;
-            if (currentUserData.showNickname && myName) {
-                displayName = `${myName}・${currentUserData.name}`;
-            }
+            if (currentUserData.showNickname && myName) { displayName = `${myName}・${currentUserData.name}`; }
             currentNameSpan.textContent = displayName;
             nameRefs.forEach(el => el.textContent = displayName);
             pUserId.textContent = currentLoginId; 
             pUserRealName.textContent = currentUserData.name;
         }
 
-        // --- ユーザーメニュー ---
         headerUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
         editUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
         function toggleUserMenu() { const isVisible = userMenu.style.display === 'block'; userMenu.style.display = isVisible ? 'none' : 'block'; }
@@ -925,188 +1070,87 @@
 
         window.changeNameAction = function() {
             userMenu.style.display = 'none';
-            if (myPermissions.canChangeName === false) {
-                alert("名前の変更は許可されていません。");
-                return;
-            }
+            if (myPermissions.canChangeName === false) { alert("名前の変更は許可されていません。"); return; }
             const newName = prompt("表示名を変更:", myName);
-            if(newName && newName.trim() !== ""){
-                myName = newName; localStorage.setItem('loilo_v2_name', myName); updateNameDisplay();
-            }
+            if(newName && newName.trim() !== ""){ myName = newName; localStorage.setItem('loilo_v2_name', myName); updateNameDisplay(); }
         };
         
-        // ログアウト処理の追加
-        window.performLogout = function() {
-            localStorage.removeItem('loilo_saved_session_id');
-            location.reload();
-        };
-
+        window.performLogout = function() { localStorage.removeItem('loilo_saved_session_id'); location.reload(); };
         window.openSettings = function() { userMenu.style.display = 'none'; viewSettings.style.display = "flex"; };
         window.closeSettings = function() { viewSettings.style.display = "none"; };
-        window.goToAdminLoginFromMenu = function() {
-            userMenu.style.display = 'none';
-            viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex';
-        }
-
-        // --- 時間割（予定表）機能 ---
-        window.openSchedule = function() {
-            document.getElementById('view-schedule').style.display = 'flex';
-            renderStudentSchedule(); // 開くときに最新データをロード
-        }
-        window.closeSchedule = function() {
-            document.getElementById('view-schedule').style.display = 'none';
-        }
-
-        // 時間割データを取得してテーブル描画 (生徒側)
-        async function renderStudentSchedule() {
-            const tbody = document.getElementById("student-schedule-body");
-            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
-            
-            try {
-                const docRef = doc(db, "config", "schedule");
-                const snap = await getDoc(docRef);
-                let scheduleData = []; // 1D array of 30 items
-                if (snap.exists() && snap.data().data) {
-                    scheduleData = snap.data().data;
-                } else {
-                    // デフォルトデータ（ない場合）を1D配列で
-                    scheduleData = [
-                        "国語", "数学", "理科", "英語", "社会",
-                        "数学", "英語", "国語", "社会", "理科",
-                        "体育", "音楽", "美術", "技術", "家庭",
-                        "英語", "理科", "社会", "国語", "数学",
-                        "社会", "国語", "数学", "理科", "英語",
-                        "総合", "学活", "道徳", "選択", "HR"
-                    ];
-                }
-
-                let html = "";
-                // 1-4限
-                for(let i=0; i<4; i++) {
-                    html += `<tr><td>${i+1}</td>`;
-                    for(let j=0; j<5; j++) {
-                        const val = scheduleData[i * 5 + j] || "";
-                        html += `<td>${escapeHtml(val)}</td>`;
-                    }
-                    html += "</tr>";
-                }
-                // 昼休み
-                html += `<tr><td colspan="6" style="background:#fafafa; color:#888;">昼休み</td></tr>`;
-                // 5-6限
-                for(let i=4; i<6; i++) {
-                    html += `<tr><td>${i+1}</td>`;
-                    for(let j=0; j<5; j++) {
-                        const val = scheduleData[i * 5 + j] || "";
-                        html += `<td>${escapeHtml(val)}</td>`;
-                    }
-                    html += "</tr>";
-                }
-                tbody.innerHTML = html;
-
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>";
-            }
-        }
-
-        // 時間割データを取得して管理画面の入力欄を作成
-        async function loadAdminSchedule() {
-            const tbody = document.getElementById("admin-schedule-body");
-            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
-            
-            try {
-                const docRef = doc(db, "config", "schedule");
-                const snap = await getDoc(docRef);
-                let scheduleData = [];
-                if (snap.exists() && snap.data().data) {
-                    scheduleData = snap.data().data;
-                } else {
-                    scheduleData = [
-                        "国語", "数学", "理科", "英語", "社会",
-                        "数学", "英語", "国語", "社会", "理科",
-                        "体育", "音楽", "美術", "技術", "家庭",
-                        "英語", "理科", "社会", "国語", "数学",
-                        "社会", "国語", "数学", "理科", "英語",
-                        "総合", "学活", "道徳", "選択", "HR"
-                    ];
-                }
-
-                let html = "";
-                // 6行作成
-                for(let i=0; i<6; i++) {
-                    html += `<tr><td>${i+1}</td>`;
-                    for(let j=0; j<5; j++) {
-                        const val = scheduleData[i * 5 + j] || "";
-                        html += `<td><input type="text" class="admin-schedule-input" value="${escapeHtml(val)}" data-row="${i}" data-col="${j}"></td>`;
-                    }
-                    html += "</tr>";
-                }
-                tbody.innerHTML = html;
-
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>";
-            }
-        }
-
-        // 管理画面で保存ボタンを押したとき
-        window.saveSchedule = async function() {
-            const inputs = document.querySelectorAll('.admin-schedule-input');
-            let flatData = new Array(30).fill(""); // 1D array
-
-            inputs.forEach(input => {
-                const r = parseInt(input.dataset.row);
-                const c = parseInt(input.dataset.col);
-                // 2D座標を1Dインデックスに変換: index = row * 5 + col
-                flatData[r * 5 + c] = input.value;
-            });
-
-            try {
-                await setDoc(doc(db, "config", "schedule"), { data: flatData }, { merge: true });
-                alert("時間割を保存しました");
-                logSystemEvent("設定変更", "時間割を更新", currentLoginId || "admin");
-            } catch(e) {
-                alert("保存エラー: " + e.message);
-            }
-        };
-
+        window.goToAdminLoginFromMenu = function() { userMenu.style.display = 'none'; viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex'; }
+        window.openSchedule = function() { document.getElementById('view-schedule').style.display = 'flex'; renderStudentSchedule(); }
+        window.closeSchedule = function() { document.getElementById('view-schedule').style.display = 'none'; }
+        
+        // ★★★ 削除されていた関数の復元 ★★★
         window.openTestLinks = function() {
             window.open('https://wq376.github.io/loilonote/1729/kouki.png', '_blank');
             window.open('https://wq376.github.io/loilonote/1729/reiwa7.png', '_blank');
         };
 
-        // --- 管理者ログイン (ロジック強化) ---
+        async function renderStudentSchedule() {
+            const tbody = document.getElementById("student-schedule-body");
+            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
+            try {
+                const docRef = doc(db, "config", "schedule");
+                const snap = await getDoc(docRef);
+                let scheduleData = [];
+                if (snap.exists() && snap.data().data) { scheduleData = snap.data().data; } else {
+                    scheduleData = [ "国語", "数学", "理科", "英語", "社会", "数学", "英語", "国語", "社会", "理科", "体育", "音楽", "美術", "技術", "家庭", "英語", "理科", "社会", "国語", "数学", "社会", "国語", "数学", "理科", "英語", "総合", "学活", "道徳", "選択", "HR" ];
+                }
+                let html = "";
+                for(let i=0; i<4; i++) { html += `<tr><td>${i+1}</td>`; for(let j=0; j<5; j++) { html += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } html += "</tr>"; }
+                html += `<tr><td colspan="6" style="background:#fafafa; color:#888;">昼休み</td></tr>`;
+                for(let i=4; i<6; i++) { html += `<tr><td>${i+1}</td>`; for(let j=0; j<5; j++) { html += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } html += "</tr>"; }
+                tbody.innerHTML = html;
+            } catch(e) { console.error(e); tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>"; }
+        }
+
+        async function loadAdminSchedule() {
+            const tbody = document.getElementById("admin-schedule-body");
+            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
+            try {
+                const docRef = doc(db, "config", "schedule");
+                const snap = await getDoc(docRef);
+                let scheduleData = [];
+                if (snap.exists() && snap.data().data) { scheduleData = snap.data().data; } else {
+                    scheduleData = [ "国語", "数学", "理科", "英語", "社会", "数学", "英語", "国語", "社会", "理科", "体育", "音楽", "美術", "技術", "家庭", "英語", "理科", "社会", "国語", "数学", "社会", "国語", "数学", "理科", "英語", "総合", "学活", "道徳", "選択", "HR" ];
+                }
+                let html = "";
+                for(let i=0; i<6; i++) { html += `<tr><td>${i+1}</td>`; for(let j=0; j<5; j++) { const val = scheduleData[i * 5 + j] || ""; html += `<td><input type="text" class="admin-schedule-input" value="${escapeHtml(val)}" data-row="${i}" data-col="${j}"></td>`; } html += "</tr>"; }
+                tbody.innerHTML = html;
+            } catch(e) { console.error(e); tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>"; }
+        }
+
+        window.saveSchedule = async function() {
+            const inputs = document.querySelectorAll('.admin-schedule-input');
+            let flatData = new Array(30).fill("");
+            inputs.forEach(input => { const r = parseInt(input.dataset.row); const c = parseInt(input.dataset.col); flatData[r * 5 + c] = input.value; });
+            try { await setDoc(doc(db, "config", "schedule"), { data: flatData }, { merge: true }); alert("時間割を保存しました"); logSystemEvent("設定変更", "時間割を更新", currentLoginId || "admin"); } catch(e) { alert("保存エラー: " + e.message); }
+        };
+
         document.getElementById("admin-login-btn").addEventListener("click", performAdminLogin);
         async function performAdminLogin() {
             const inputId = document.getElementById("admin-pass-input").value;
-            
-            // 1. スーパーパスワード (1726, admin) でのログイン -> 特権モード
             if (inputId === SUPER_ADMIN_PASS || inputId === ADMIN_PASS) {
                 currentAdminSessionType = 'super';
                 viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
-                adminAddArea.style.display = "flex"; 
-                areIdsVisible = false; 
+                adminAddArea.style.display = "flex"; areIdsVisible = false; 
                 renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList(); loadAdminSchedule();
                 logSystemEvent("管理アクセス", "特権管理者としてログイン", "SUPER_ADMIN");
                 return;
             }
-
-            // 2. ユーザーIDでのログイン (権限チェック)
             try {
                 const docRef = doc(db, "config", "users");
                 const docSnap = await getDoc(docRef);
-                
                 if (docSnap.exists()) {
                     const allUsers = docSnap.data();
                     const user = allUsers[inputId];
-
                     if (user) {
                         if (user.isAdmin === true) {
-                            // 通常管理者モード
                             currentAdminSessionType = 'user';
                             viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
-                            adminAddArea.style.display = "none"; // 追加エリア非表示
-                            areIdsVisible = false;
+                            adminAddArea.style.display = "none"; areIdsVisible = false;
                             renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList(); loadAdminSchedule();
                             logSystemEvent("管理アクセス", "管理者権限ユーザーとしてログイン", inputId);
                         } else {
@@ -1117,7 +1161,6 @@
                     }
                 }
             } catch(e) { console.error(e); }
-
             document.getElementById("admin-login-error").innerText = "パスワードが違います";
         }
         
@@ -1128,7 +1171,6 @@
             if(currentLoginId) { viewList.style.display = "flex"; } else { viewPortal.style.display = "flex"; }
         };
 
-        // タブ切り替え
         window.switchAdminTab = function(tabName) {
             document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
@@ -1145,30 +1187,42 @@
             } else if(tabName === 'schedule') {
                 document.querySelector('.admin-tab:nth-child(4)').classList.add('active');
                 document.getElementById('tab-content-schedule').classList.add('active');
-            } 
-            // 新規追加: サーバー切替
-            else if(tabName === 'server') {
+            } else if(tabName === 'server') {
                 document.querySelector('.admin-tab:nth-child(5)').classList.add('active');
                 document.getElementById('tab-content-server').classList.add('active');
                 renderServerList();
+            } 
+            // 既存の関数内に追加
+        // ... 他のelse ifの後 ...
+        else if(tabName === 'update') {
+            // HTMLに追加した順番に合わせてnth-childの番号を調整してください
+            // 例: ログ, チャット, NG, 時間割, サーバー, 状況, お知らせ(これ) => 7番目
+            document.querySelectorAll('.admin-tab')[6].classList.add('active'); 
+            document.getElementById('tab-content-update').classList.add('active');
+            renderAdminUpdates();
+            
+            // 日付入力欄に今日の日付をセット
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = ('0' + (today.getMonth()+1)).slice(-2);
+            const d = ('0' + today.getDate()).slice(-2);
+            document.getElementById('upd-input-date').value = `${y}.${m}.${d}`;
+        }else if(tabName === 'status') {
+                document.querySelector('.admin-tab:nth-child(6)').classList.add('active');
+                document.getElementById('tab-content-status').classList.add('active');
+                loadAdminStatusSettings();
             }
         };
 
-        // --- 管理者：ユーザー追加・削除 ---
         window.addNewUser = async function() {
             if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
             const newId = document.getElementById("new-user-id").value.trim();
             const newName = document.getElementById("new-user-name").value.trim();
             if(!newId || !newName) { alert("IDと名前を入力してください"); return; }
             try {
-                const newUser = {
-                    name: newName, isAllowed: true, isAdmin: false, canChangeName: true,
-                    showNickname: true, canUnsend: true, needReload: false,
-                    canChat: true, canImage: true, lastDevice: ""
-                };
+                const newUser = { name: newName, isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true, lastDevice: "" };
                 await setDoc(doc(db, "config", "users"), { [newId]: newUser }, { merge: true });
-                document.getElementById("new-user-id").value = "";
-                document.getElementById("new-user-name").value = "";
+                document.getElementById("new-user-id").value = ""; document.getElementById("new-user-name").value = "";
                 logSystemEvent("設定変更", `新規ユーザー追加: ${newName} (${newId})`, currentLoginId || "admin");
             } catch(e) { alert("追加エラー: "+e.message); }
         };
@@ -1177,64 +1231,38 @@
             if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
             if (id === SUPER_ADMIN_ID) { alert("このユーザーは削除できません"); return; }
             if(!confirm(`ユーザー ${id} を完全に削除しますか？`)) return;
-            try {
-                await updateDoc(doc(db, "config", "users"), { [id]: deleteField() });
-                logSystemEvent("設定変更", `ユーザー削除: ${id}`, currentLoginId || "admin");
-            } catch(e) { alert("削除エラー: "+e.message); }
+            try { await updateDoc(doc(db, "config", "users"), { [id]: deleteField() }); logSystemEvent("設定変更", `ユーザー削除: ${id}`, currentLoginId || "admin"); } catch(e) { alert("削除エラー: "+e.message); }
         };
         
         window.editUserName = async function(id, currentName) {
             if (id === SUPER_ADMIN_ID && currentAdminSessionType !== 'super') { alert("変更できません"); return; }
             const newName = prompt("新しい名前を入力:", currentName);
-            if(newName && newName !== currentName) {
-                 await setDoc(doc(db, "config", "users"), { [id]: { name: newName } }, { merge: true });
-            }
+            if(newName && newName !== currentName) { await setDoc(doc(db, "config", "users"), { [id]: { name: newName } }, { merge: true }); }
         };
         
-        // ▼▼▼ 強制リロード実行 ▼▼▼
         window.forceReloadUser = async function(id) {
             if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
             if(!confirm("このユーザーを強制的に再読み込みさせますか？")) return;
-            try {
-                await setDoc(doc(db, "config", "users"), { [id]: { needReload: true } }, { merge: true });
-                alert("再読み込みコマンドを送信しました。");
-            } catch(e) { alert("送信失敗: "+e.message); }
+            try { await setDoc(doc(db, "config", "users"), { [id]: { needReload: true } }, { merge: true }); alert("再読み込みコマンドを送信しました。"); } catch(e) { alert("送信失敗: "+e.message); }
         };
 
-        // ▼▼▼ 個人への通知送信 ▼▼▼
         window.sendUserAlert = async function(id) {
             const msg = prompt("このユーザーへの通知メッセージを入力:");
             if(!msg) return;
-            try {
-                await setDoc(doc(db, "config", "users"), { [id]: { alertMessage: msg } }, { merge: true });
-                alert("送信しました");
-                logSystemEvent("通知", `通知送信: ${id} -> ${msg}`, currentLoginId || "admin");
-            } catch(e) { alert("送信失敗: " + e.message); }
+            try { await setDoc(doc(db, "config", "users"), { [id]: { alertMessage: msg } }, { merge: true }); alert("送信しました"); logSystemEvent("通知", `通知送信: ${id} -> ${msg}`, currentLoginId || "admin"); } catch(e) { alert("送信失敗: " + e.message); }
         }
         
-        // --- フィルター管理ロジック ---
         window.addFilterWord = async function() {
             const input = document.getElementById('new-filter-word');
             const val = input.value.trim();
             if(!val) return;
             if(ngWords.includes(val)) { alert('既に追加されています'); return; }
-            try {
-                await updateDoc(doc(db, "config", "filters"), {
-                    words: arrayUnion(val)
-                });
-                input.value = "";
-                logSystemEvent("設定変更", `NGワード追加: ${val}`, currentLoginId || "admin");
-            } catch(e) { alert("追加エラー: " + e.message); }
+            try { await updateDoc(doc(db, "config", "filters"), { words: arrayUnion(val) }); input.value = ""; logSystemEvent("設定変更", `NGワード追加: ${val}`, currentLoginId || "admin"); } catch(e) { alert("追加エラー: " + e.message); }
         };
         
         window.deleteFilterWord = async function(word) {
             if(!confirm(`「${word}」をフィルターから削除しますか？`)) return;
-            try {
-                await updateDoc(doc(db, "config", "filters"), {
-                    words: arrayRemove(word)
-                });
-                logSystemEvent("設定変更", `NGワード削除: ${word}`, currentLoginId || "admin");
-            } catch(e) { alert("削除エラー: " + e.message); }
+            try { await updateDoc(doc(db, "config", "filters"), { words: arrayRemove(word) }); logSystemEvent("設定変更", `NGワード削除: ${word}`, currentLoginId || "admin"); } catch(e) { alert("削除エラー: " + e.message); }
         };
         
         function renderFilterList() {
@@ -1242,8 +1270,7 @@
             if(!listDiv) return;
             listDiv.innerHTML = "";
             ngWords.forEach(word => {
-                const el = document.createElement("div");
-                el.className = "filter-item";
+                const el = document.createElement("div"); el.className = "filter-item";
                 el.innerHTML = `<span>${escapeHtml(word)}</span> <span class="del-btn" onclick="deleteFilterWord('${escapeHtml(word)}')">×</span>`;
                 listDiv.appendChild(el);
             });
@@ -1258,79 +1285,37 @@
         async function renderAdminList() {
             const listDiv = document.getElementById("admin-user-list"); 
             listDiv.innerHTML = "読み込み中...";
-            
             onSnapshot(doc(db, "config", "users"), (docSnap) => {
                 listDiv.innerHTML = "";
                 const allUsers = docSnap.exists() ? docSnap.data() : {};
                 const sortedIds = Object.keys(allUsers).sort();
-                
                 for (let id of sortedIds) {
                     const u = allUsers[id];
-                    if (typeof u === 'boolean') { /*旧データ対応省略*/ }
-                    // データ補完
-                    const perm = { 
-                        isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, 
-                        canChat: true, canImage: true, ...u 
-                    };
-
+                    if (typeof u === 'boolean') { continue; }
+                    const perm = { isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, canChat: true, canImage: true, ...u };
                     const isTargetProtected = (id === SUPER_ADMIN_ID || id === "admin");
                     const canEditProtected = (currentAdminSessionType === 'super');
-                    
                     const disabledAttr = (isTargetProtected && !canEditProtected) ? "disabled" : "";
                     const opacityStyle = (isTargetProtected && !canEditProtected) ? "opacity:0.5; cursor:not-allowed;" : "";
                     const clickAction = (isTargetProtected && !canEditProtected) ? `onclick="alert('変更できません。'); return false;"` : "";
-
                     const displayId = areIdsVisible ? id : "****";
-                    
-                    // 削除・リロード・通知ボタン
                     let actionBtns = "";
                     actionBtns += `<span class="alert-icon" onclick="sendUserAlert('${id}')" title="通知を送る">🔔</span> `;
                     if (currentAdminSessionType === 'super') {
                          actionBtns += `<span class="refresh-icon" onclick="forceReloadUser('${id}')" title="強制リロード">🔄</span> `;
-                         if(!isTargetProtected) {
-                             actionBtns += `<span class="delete-icon" onclick="deleteUser('${id}')" title="削除">🗑️</span>`;
-                         }
+                         if(!isTargetProtected) { actionBtns += `<span class="delete-icon" onclick="deleteUser('${id}')" title="削除">🗑️</span>`; }
                     }
-
                     const row = document.createElement("div"); row.className = "user-control-row";
                     row.innerHTML = `
-                        <div class="user-info-row">
-                            <div class="user-info-admin">
-                                ${escapeHtml(perm.name)} (${displayId}) 
-                                <span class="edit-icon" onclick="editUserName('${id}', '${escapeHtml(perm.name)}')">✏️</span>
-                                ${actionBtns}
-                                <br><span class="device-info">端末: ${perm.lastDevice || "不明"}</span>
-                            </div>
-                        </div>
+                        <div class="user-info-row"><div class="user-info-admin">${escapeHtml(perm.name)} (${displayId}) <span class="edit-icon" onclick="editUserName('${id}', '${escapeHtml(perm.name)}')">✏️</span>${actionBtns}<br><span class="device-info">端末: ${perm.lastDevice || "不明"}</span></div></div>
                         <div class="user-settings-row">
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
-                                <span class="status-label">ログイン</span>
-                                <label class="toggle-switch"><input type="checkbox" ${perm.isAllowed ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'isAllowed', this)"><span class="slider"></span></label>
-                            </div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
-                                <span class="status-label">管理者</span>
-                                <label class="toggle-switch"><input type="checkbox" ${perm.isAdmin ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'isAdmin', this)"><span class="slider"></span></label>
-                            </div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
-                                <span class="status-label">チャット</span>
-                                <label class="toggle-switch"><input type="checkbox" ${perm.canChat ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canChat', this)"><span class="slider"></span></label>
-                            </div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
-                                <span class="status-label">画像</span>
-                                <label class="toggle-switch"><input type="checkbox" ${perm.canImage ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canImage', this)"><span class="slider"></span></label>
-                            </div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
-                                <span class="status-label">名前変更</span>
-                                <label class="toggle-switch"><input type="checkbox" ${perm.canChangeName ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canChangeName', this)"><span class="slider"></span></label>
-                            </div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
-                                <span class="status-label">ニックネーム</span>
-                                <label class="toggle-switch"><input type="checkbox" ${perm.showNickname ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'showNickname', this)"><span class="slider"></span></label>
-                            </div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}>
-                                <span class="status-label">送信取消</span>
-                                <label class="toggle-switch"><input type="checkbox" ${perm.canUnsend ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canUnsend', this)"><span class="slider"></span></label>
-                            </div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ログイン</span><label class="toggle-switch"><input type="checkbox" ${perm.isAllowed ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'isAllowed', this)"><span class="slider"></span></label></div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">管理者</span><label class="toggle-switch"><input type="checkbox" ${perm.isAdmin ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'isAdmin', this)"><span class="slider"></span></label></div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">チャット</span><label class="toggle-switch"><input type="checkbox" ${perm.canChat ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canChat', this)"><span class="slider"></span></label></div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">画像</span><label class="toggle-switch"><input type="checkbox" ${perm.canImage ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canImage', this)"><span class="slider"></span></label></div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">名前変更</span><label class="toggle-switch"><input type="checkbox" ${perm.canChangeName ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canChangeName', this)"><span class="slider"></span></label></div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ニックネーム</span><label class="toggle-switch"><input type="checkbox" ${perm.showNickname ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'showNickname', this)"><span class="slider"></span></label></div>
+                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">送信取消</span><label class="toggle-switch"><input type="checkbox" ${perm.canUnsend ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canUnsend', this)"><span class="slider"></span></label></div>
                         </div>
                     `;
                     listDiv.appendChild(row);
@@ -1340,15 +1325,8 @@
 
         window.togglePerm = async function(id, type, checkbox) {
             const val = checkbox.checked;
-            if ((id === SUPER_ADMIN_ID || id === "admin") && currentAdminSessionType !== 'super') {
-                checkbox.checked = !val; return;
-            }
-            try {
-                await setDoc(doc(db, "config", "users"), { [id]: { [type]: val } }, { merge: true });
-                logSystemEvent("設定変更", `${id} の ${type} を ${val} に変更`, currentLoginId || "admin");
-            } catch(e) {
-                alert("保存失敗: " + e.message); checkbox.checked = !val; 
-            }
+            if ((id === SUPER_ADMIN_ID || id === "admin") && currentAdminSessionType !== 'super') { checkbox.checked = !val; return; }
+            try { await setDoc(doc(db, "config", "users"), { [id]: { [type]: val } }, { merge: true }); logSystemEvent("設定変更", `${id} の ${type} を ${val} に変更`, currentLoginId || "admin"); } catch(e) { alert("保存失敗: " + e.message); checkbox.checked = !val; }
         };
 
         function renderSystemLogs() {
@@ -1411,43 +1389,26 @@
 
         async function sendPayload(text="", file=null) {
             if(!text && !file) return;
-            
-            // 権限チェック (念のため)
             if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
             if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
-
-            // フィルタリング処理 (テキストのみ)
             let safeText = text;
-            if(safeText) {
-                ngWords.forEach(badWord => {
-                    if(badWord && safeText.includes(badWord)) {
-                        safeText = safeText.split(badWord).join("*".repeat(badWord.length));
-                    }
-                });
-            }
-            
+            if(safeText) { ngWords.forEach(badWord => { if(badWord && safeText.includes(badWord)) { safeText = safeText.split(badWord).join("*".repeat(badWord.length)); } }); }
             let imageUrl = null;
             if(file) {
-    imageUrl = await new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                // サイズを小さくする (最大幅 800px)
-                const scale = 800 / Math.max(img.width, img.height, 800);
-                canvas.width = img.width * scale;
-                canvas.height = img.height * scale;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                // 画質を0.5(50%)に落とす
-                resolve(canvas.toDataURL('image/jpeg', 0.5));
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-}
+                imageUrl = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const scale = 800 / Math.max(img.width, img.height, 800);
+                            canvas.width = img.width * scale; canvas.height = img.height * scale;
+                            const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL('image/jpeg', 0.5));
+                        }; img.src = e.target.result;
+                    }; reader.readAsDataURL(file);
+                });
+            }
             let senderName = currentUserData ? currentUserData.name : "Unknown";
             if (currentUserData && currentUserData.showNickname && myName) { senderName = `${myName}・${currentUserData.name}`; }
             const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
@@ -1459,53 +1420,31 @@
         chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
         document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
 
-        const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
-        onSnapshot(q, (snap) => {
+        const qMsg = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
+        onSnapshot(qMsg, (snap) => {
             msgList.innerHTML = ""; const idMap = {}; const userMap = {}; 
-            snap.forEach(d => {
-                const data = d.data();
-                idMap[d.id] = data.text || "画像";
-                if(data.uid && data.name) { const parts = data.name.split('・'); userMap[data.uid] = parts.length > 1 ? parts[1] : data.name; }
-            });
+            snap.forEach(d => { const data = d.data(); idMap[d.id] = data.text || "画像"; if(data.uid && data.name) { const parts = data.name.split('・'); userMap[data.uid] = parts.length > 1 ? parts[1] : data.name; } });
             snap.forEach(docSnap => {
                 const data = docSnap.data();
                 const docId = docSnap.id;
-                if (data.uid !== myUid && (!data.readBy || !data.readBy.includes(myUid))) {
-                    updateDoc(doc(db, "fake_loilo_v2", docId), { readBy: arrayUnion(myUid) });
-                }
+                if (data.uid !== myUid && (!data.readBy || !data.readBy.includes(myUid))) { updateDoc(doc(db, "fake_loilo_v2", docId), { readBy: arrayUnion(myUid) }); }
                 const wrapper = document.createElement("div"); wrapper.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
                 const card = document.createElement("div"); card.className = "msg-card " + (data.uid===myUid?"msg-mine":"msg-other");
                 card.id = "msg-"+docId;
-                
-                // ★ メッセージをダブルクリックしたら返信
-                card.addEventListener("dblclick", (e)=>{
-                    e.stopPropagation();
-                    replyTargetId=docId;
-                    replyTargetText.textContent="返信先: "+(data.text||"画像");
-                    replyStatusBar.style.display="flex";
-                    chatInput.focus();
-                });
-
+                card.addEventListener("dblclick", (e)=>{ e.stopPropagation(); replyTargetId=docId; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; chatInput.focus(); });
                 let html = "";
                 if(data.replyTo && idMap[data.replyTo]) html += `<div class="reply-ref" onclick="document.getElementById('msg-${data.replyTo}').scrollIntoView({behavior:'smooth'});">↩ ${escapeHtml(idMap[data.replyTo])}</div>`;
                 if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
                 if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
-                
-                // 送信取り消しボタン
                 if (data.uid === myUid && data.createdAt) {
                     const diff = (new Date() - data.createdAt.toDate()) / 1000 / 60;
                     if (diff <= 5 && myPermissions.canUnsend) { html += `<button class="msg-unsend-btn" onclick="unsendMessage('${docId}')">×</button>`; }
                 }
-
                 card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)}</div><div class="msg-content">${html}</div>`;
-                
                 wrapper.appendChild(card);
                 if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
-                    const read = document.createElement("div"); read.className = "read-label"; 
-                    const count = data.readBy.length; read.textContent = "既読 " + count;
-                    const readerNames = data.readBy.map(uid => userMap[uid] || "不明").join("、");
-                    read.title = "既読: " + readerNames;
-                    wrapper.appendChild(read);
+                    const read = document.createElement("div"); read.className = "read-label"; const count = data.readBy.length; read.textContent = "既読 " + count;
+                    const readerNames = data.readBy.map(uid => userMap[uid] || "不明").join("、"); read.title = "既読: " + readerNames; wrapper.appendChild(read);
                 }
                 msgList.appendChild(wrapper);
             });
@@ -1517,20 +1456,13 @@
             try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("失敗: " + e.message); }
         };
 
-        // --- ★ カメラ機能修正 ★ ---
         btnCamera.addEventListener("click", async () => {
             const cameraOverlay = document.getElementById("camera-overlay");
-            // ★修正: videoElをここで定義
             const videoEl = document.getElementById("webcam-video");
-            
             cameraOverlay.style.display = "flex";
-            try { 
-                currentStream = await navigator.mediaDevices.getUserMedia({ video: true }); 
-                videoEl.srcObject = currentStream; 
-            } 
-            catch (err) { alert("カメラ起動エラー: " + err.message); cameraOverlay.style.display = "none"; }
+            try { currentStream = await navigator.mediaDevices.getUserMedia({ video: true }); videoEl.srcObject = currentStream; } catch (err) { alert("カメラ起動エラー: " + err.message); cameraOverlay.style.display = "none"; }
         });
-        window.closeCamera = function() { cameraOverlay.style.display = "none"; if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; } };
+        window.closeCamera = function() { const cameraOverlay = document.getElementById("camera-overlay"); cameraOverlay.style.display = "none"; if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; } };
         document.getElementById("close-camera-btn").addEventListener("click", closeCamera);
 
         document.getElementById("btn-text").addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("color-picker-overlay").style.display = "block"; });
@@ -1542,71 +1474,30 @@
         const trashBtn = document.getElementById("trash-btn");
         trashBtn.addEventListener("dblclick", async () => {
             if (!confirm("全データを削除しますか？")) return;
-            try {
-                const q = query(collection(db, "fake_loilo_v2"));
-                const querySnapshot = await getDocs(q);
-                const deletePromises = [];
-                querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); });
-                await Promise.all(deletePromises);
-                alert("削除しました");
-                logSystemEvent("削除", "全データ削除(ゴミ箱)", currentLoginId);
-            } catch (e) { alert("削除エラー: " + e.message); }
+            try { const q = query(collection(db, "fake_loilo_v2")); const querySnapshot = await getDocs(q); const deletePromises = []; querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); }); await Promise.all(deletePromises); alert("削除しました"); logSystemEvent("削除", "全データ削除(ゴミ箱)", currentLoginId); } catch (e) { alert("削除エラー: " + e.message); }
         });
 
         document.getElementById("admin-delete-all-btn").addEventListener("click", async () => {
             if (!confirm("【警告】\nすべてのチャット履歴と画像を削除します。\n本当によろしいですか？")) return;
             if (!confirm("削除されたデータは復元できません。\n実行しますか？")) return;
-            try {
-                const q = query(collection(db, "fake_loilo_v2"));
-                const querySnapshot = await getDocs(q);
-                const deletePromises = [];
-                querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); });
-                await Promise.all(deletePromises);
-                alert("履歴を全消去しました。");
-                logSystemEvent("削除", "全データ削除(管理者)", currentLoginId);
-            } catch (e) { alert("削除エラー: " + e.message); }
+            try { const q = query(collection(db, "fake_loilo_v2")); const querySnapshot = await getDocs(q); const deletePromises = []; querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); }); await Promise.all(deletePromises); alert("履歴を全消去しました。"); logSystemEvent("削除", "全データ削除(管理者)", currentLoginId); } catch (e) { alert("削除エラー: " + e.message); }
         });
         
-        // --- CSV保存機能 ---
         window.downloadChatCSV = async function() {
             try {
                 const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
                 const snap = await getDocs(q);
                 let csvContent = "日時,名前,メッセージ,画像URL\n";
-                
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    const date = d.createdAt ? d.createdAt.toDate().toLocaleString() : "";
-                    const name = `"${(d.name || "").replace(/"/g, '""')}"`;
-                    const text = `"${(d.text || "").replace(/"/g, '""')}"`;
-                    const img = d.imageUrl ? "あり" : "";
-                    csvContent += `${date},${name},${text},${img}\n`;
-                });
-                
-                const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-                const blob = new Blob([bom, csvContent], { type: "text/csv" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `chat_log_${new Date().getTime()}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
+                snap.forEach(doc => { const d = doc.data(); const date = d.createdAt ? d.createdAt.toDate().toLocaleString() : ""; const name = `"${(d.name || "").replace(/"/g, '""')}"`; const text = `"${(d.text || "").replace(/"/g, '""')}"`; const img = d.imageUrl ? "あり" : ""; csvContent += `${date},${name},${text},${img}\n`; });
+                const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); const blob = new Blob([bom, csvContent], { type: "text/csv" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `chat_log_${new Date().getTime()}.csv`; a.click(); URL.revokeObjectURL(url);
             } catch(e) { alert("CSV保存エラー: " + e.message); }
         };
 
-        // --- ★★★ サーバー管理機能 (JSロジック) ★★★ ---
-        
         window.renderServerList = function() {
             const listContainer = document.getElementById('server-list-container');
             document.getElementById('current-server-label').textContent = currentConfigLabel;
-            
-            // 保存されたサーバーリストを取得
             let serverList = [];
-            try {
-                serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]");
-            } catch(e){}
-
-            // デフォルト設定
+            try { serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]"); } catch(e){}
             let html = `
                 <div class="admin-chat-item" style="background:#e6f2ff; border:2px solid #007aff;">
                     <div style="flex:1;">
@@ -1617,64 +1508,27 @@
                     <button class="admin-btn" onclick="activateServer(null)">これに切替</button>
                 </div>
             `;
-
-            // 追加されたサーバー
             serverList.forEach((srv, index) => {
-                html += `
-                    <div class="admin-chat-item">
-                        <div style="flex:1;">
-                            <div class="ac-info">追加サーバー ${index + 1}</div>
-                            <div class="ac-content">${escapeHtml(srv.label)}</div>
-                            <div style="font-size:0.7rem; color:#666; margin-top:2px;">${escapeHtml(srv.config.projectId || "ID不明")}</div>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:5px;">
-                            <button class="admin-btn" onclick="activateServer(${index})">切替</button>
-                            <button class="admin-btn del" style="font-size:0.7rem; padding:2px 8px;" onclick="deleteServer(${index})">削除</button>
-                        </div>
-                    </div>
-                `;
+                html += `<div class="admin-chat-item"><div style="flex:1;"><div class="ac-info">追加サーバー ${index + 1}</div><div class="ac-content">${escapeHtml(srv.label)}</div><div style="font-size:0.7rem; color:#666; margin-top:2px;">${escapeHtml(srv.config.projectId || "ID不明")}</div></div><div style="display:flex; flex-direction:column; gap:5px;"><button class="admin-btn" onclick="activateServer(${index})">切替</button><button class="admin-btn del" style="font-size:0.7rem; padding:2px 8px;" onclick="deleteServer(${index})">削除</button></div></div>`;
             });
-
             listContainer.innerHTML = html;
         };
 
         window.addServerConfig = function() {
             const label = document.getElementById('server-label-input').value.trim();
             let jsonStr = document.getElementById('server-json-input').value.trim();
-
             if(!label || !jsonStr) { alert("表示名と設定コードを入力してください"); return; }
-
-            const start = jsonStr.indexOf('{');
-            const end = jsonStr.lastIndexOf('}');
-            if(start !== -1 && end !== -1) {
-                jsonStr = jsonStr.substring(start, end + 1);
-            }
-
+            const start = jsonStr.indexOf('{'); const end = jsonStr.lastIndexOf('}');
+            if(start !== -1 && end !== -1) { jsonStr = jsonStr.substring(start, end + 1); }
             try {
-                let configObj;
-                try {
-                    configObj = JSON.parse(jsonStr);
-                } catch(e) {
-                    configObj = new Function("return " + jsonStr)();
-                }
-
-                if(!configObj.apiKey || !configObj.projectId) {
-                    alert("有効なFirebase設定ではありません (apiKeyなどが不足)");
-                    return;
-                }
-
+                let configObj; try { configObj = JSON.parse(jsonStr); } catch(e) { configObj = new Function("return " + jsonStr)(); }
+                if(!configObj.apiKey || !configObj.projectId) { alert("有効なFirebase設定ではありません (apiKeyなどが不足)"); return; }
                 let serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]");
                 serverList.push({ label: label, config: configObj });
                 localStorage.setItem('loilo_server_list', JSON.stringify(serverList));
-
-                document.getElementById('server-label-input').value = "";
-                document.getElementById('server-json-input').value = "";
-                renderServerList();
-                alert("リストに追加しました");
-
-            } catch(e) {
-                alert("設定コードの読み取りに失敗しました。\n" + e.message);
-            }
+                document.getElementById('server-label-input').value = ""; document.getElementById('server-json-input').value = "";
+                renderServerList(); alert("リストに追加しました");
+            } catch(e) { alert("設定コードの読み取りに失敗しました。\n" + e.message); }
         };
 
         window.deleteServer = function(index) {
@@ -1688,23 +1542,152 @@
         window.activateServer = function(index) {
             if(index === null) {
                 if(!confirm("初期サーバーに戻します。リロードしますか？")) return;
-                localStorage.removeItem('loilo_active_server_config');
-                localStorage.removeItem('loilo_saved_session_id'); 
-                location.reload();
+                localStorage.removeItem('loilo_active_server_config'); localStorage.removeItem('loilo_saved_session_id'); location.reload();
             } else {
                 let serverList = JSON.parse(localStorage.getItem('loilo_server_list') || "[]");
                 const target = serverList[index];
                 if(!target) return;
-
                 if(!confirm(`「${target.label}」に切り替えます。\nページがリロードされ、再ログインが必要になります。`)) return;
-                
-                localStorage.setItem('loilo_active_server_config', JSON.stringify(target));
-                localStorage.removeItem('loilo_saved_session_id');
-                location.reload();
+                localStorage.setItem('loilo_active_server_config', JSON.stringify(target)); localStorage.removeItem('loilo_saved_session_id'); location.reload();
             }
         };
         
-        // --- 自動ログインチェック (最後に追加) ---
+        // --- ★サービス状況管理機能 (追加) ---
+        const DEFAULT_STATUS_CONFIG = {
+            showMaintenance: false,
+            maintTitle: "メンテナンスのお知らせ",
+            maintMsg: "メンテナンス時間は多少前後することがございます",
+            maintTime: "未定",
+            services: {
+                api: { label: "APIサーバー", status: "ok" },
+                web: { label: "Web版", status: "ok" },
+                admin: { label: "管理画面", status: "ok" },
+                chat: { label: "チャット機能", status: "ok" },
+                contact1: { label: "連絡用サーバー1", status: "ok" },
+                contact2: { label: "連絡用サーバー2", status: "ok" },
+                contact3: { label: "連絡用サーバー3", status: "ok" },
+                image: { label: "画像用サーバー", status: "ok" },
+                srv1937: { label: "1937サーバー", status: "ok" }
+            }
+        };
+
+        async function initStatusDB() {
+            try {
+                const docRef = doc(db, "config", "service_status");
+                const snap = await getDoc(docRef);
+                if (!snap.exists()) { await setDoc(docRef, DEFAULT_STATUS_CONFIG); }
+            } catch(e) { console.error(e); }
+        }
+        initStatusDB();
+
+// --- アップデート情報管理 ---
+        const DEFAULT_UPDATES = [
+            { id: 1, date: "2025.12.25", isNew: true, title: "冬の大型アップデート (v5.30)", body: "・サービス状況確認画面を追加しました。\n・資料箱にAIツールへのリンク集を追加しました。\n・管理者機能を強化し、サーバーの切替が可能になりました。" },
+            { id: 2, date: "2025.12.10", isNew: false, title: "不具合の修正", body: "・特定の端末でカメラが起動しない問題を修正しました。\n・UIの表示崩れを調整しました。" }
+        ];
+
+        async function initUpdateDB() {
+            try {
+                const docRef = doc(db, "config", "updates");
+                const snap = await getDoc(docRef);
+                if (!snap.exists()) {
+                    await setDoc(docRef, { items: DEFAULT_UPDATES });
+                }
+            } catch(e) { console.error(e); }
+        }
+        initUpdateDB();
+
+        window.openServiceStatus = function() {
+            document.getElementById('user-menu-dropdown').style.display = 'none';
+            document.getElementById('view-service-status').style.display = 'flex';
+        };
+
+        onSnapshot(doc(db, "config", "service_status"), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                renderServiceStatusPage(data);
+                const subStatusEl = document.getElementById("menu-sub-status");
+                if (data.showMaintenance) { subStatusEl.textContent = "メンテナンス予定があります"; subStatusEl.style.display = "block"; } else { subStatusEl.style.display = "none"; }
+            }
+        });
+
+        function renderServiceStatusPage(data) {
+            let allOk = true; let hasWarn = false;
+            Object.values(data.services).forEach(s => { if(s.status === 'error') allOk = false; if(s.status === 'warn') hasWarn = true; });
+
+            const overallIcon = document.getElementById('overall-icon');
+            const overallText = document.getElementById('overall-text');
+            const nowTime = new Date().toLocaleTimeString('ja-JP', {hour: '2-digit', minute:'2-digit'});
+
+            if (allOk && !hasWarn) { overallIcon.className = "status-icon-large s-ok"; overallIcon.textContent = "✔"; overallText.textContent = `${nowTime} 現在、すべてのサービスが正常に稼働しています`; } 
+            else if (!allOk) { overallIcon.className = "status-icon-large s-error"; overallIcon.textContent = "✖"; overallText.textContent = `${nowTime} 現在、一部のサービスで障害が発生しています`; } 
+            else { overallIcon.className = "status-icon-large s-warn"; overallIcon.textContent = "▲"; overallText.textContent = `${nowTime} 現在、一部のサービスが不安定です`; }
+
+            const maintArea = document.getElementById('status-maintenance-area');
+            if (data.showMaintenance) {
+                maintArea.style.display = "block";
+                document.getElementById('disp-maint-title').textContent = data.maintTitle;
+                document.getElementById('disp-maint-msg').textContent = data.maintMsg;
+                document.getElementById('disp-maint-time').textContent = data.maintTime;
+            } else { maintArea.style.display = "none"; }
+
+            const listDiv = document.getElementById('service-status-list');
+            listDiv.innerHTML = "";
+            const order = ['api', 'web', 'admin', 'chat', 'contact1', 'contact2', 'contact3', 'image', 'srv1937'];
+            
+            order.forEach(key => {
+                const item = data.services[key];
+                if(!item) return;
+                let iconChar = "✔"; let iconClass = "sc-ok"; let statusText = "正常に稼働しています";
+                if (item.status === 'warn') { iconChar = "!"; iconClass = "sc-warn"; statusText = "遅延・不安定な状態です"; } 
+                else if (item.status === 'error') { iconChar = "×"; iconClass = "sc-error"; statusText = "停止しています"; }
+                const el = document.createElement('div'); el.className = "status-item-card";
+                el.innerHTML = `<div class="status-check-icon ${iconClass}">${iconChar}</div><div class="status-text-area"><div class="status-label">${escapeHtml(item.label)}</div><div class="status-desc">${statusText}</div></div>`;
+                listDiv.appendChild(el);
+            });
+        }
+
+        async function loadAdminStatusSettings() {
+            const docRef = doc(db, "config", "service_status");
+            const snap = await getDoc(docRef);
+            let data = DEFAULT_STATUS_CONFIG;
+            if (snap.exists()) data = snap.data();
+
+            document.getElementById('adm-maint-active').checked = data.showMaintenance;
+            document.getElementById('adm-maint-title').value = data.maintTitle;
+            document.getElementById('adm-maint-msg').value = data.maintMsg;
+            document.getElementById('adm-maint-time').value = data.maintTime;
+
+            const listDiv = document.getElementById('admin-status-list');
+            listDiv.innerHTML = "<h4>各サービスの稼働状況</h4>";
+            const order = ['api', 'web', 'admin', 'chat', 'contact1', 'contact2', 'contact3', 'image', 'srv1937'];
+            
+            order.forEach(key => {
+                const item = data.services[key] || { label: key, status: 'ok' };
+                const div = document.createElement('div');
+                div.className = 'admin-status-row';
+                div.innerHTML = `<span style="font-weight:bold;">${item.label}</span><select class="admin-status-select" id="status-select-${key}"><option value="ok" ${item.status==='ok'?'selected':''}>正常 (緑)</option><option value="warn" ${item.status==='warn'?'selected':''}>不安定 (黄)</option><option value="error" ${item.status==='error'?'selected':''}>停止 (赤)</option></select>`;
+                listDiv.appendChild(div);
+            });
+        }
+
+        window.saveServiceStatusConfig = async function() {
+            const showMaintenance = document.getElementById('adm-maint-active').checked;
+            const maintTitle = document.getElementById('adm-maint-title').value;
+            const maintMsg = document.getElementById('adm-maint-msg').value;
+            const maintTime = document.getElementById('adm-maint-time').value;
+            const services = {};
+            const order = ['api', 'web', 'admin', 'chat', 'contact1', 'contact2', 'contact3', 'image', 'srv1937'];
+            const labels = {
+                api: "APIサーバー", web: "Web版", admin: "管理画面",
+                chat: "チャット機能", contact1: "連絡用サーバー1", contact2: "連絡用サーバー2", 
+                contact3: "連絡用サーバー3", image: "画像用サーバー", srv1937: "1937サーバー"
+            };
+            order.forEach(key => { const val = document.getElementById(`status-select-${key}`).value; services[key] = { label: labels[key], status: val }; });
+            const newData = { showMaintenance, maintTitle, maintMsg, maintTime, services };
+            try { await setDoc(doc(db, "config", "service_status"), newData); alert("ステータスを更新しました"); } catch(e) { alert("更新エラー: " + e.message); }
+        };
+
         async function checkAutoLogin() {
             const savedId = localStorage.getItem('loilo_saved_session_id');
             if(!savedId) return;
@@ -1722,14 +1705,159 @@
                      viewList.style.display = "flex";
                      updateNameDisplay();
                      logSystemEvent("再接続", "自動ログイン成功", savedId);
-                 } else {
-                     localStorage.removeItem('loilo_saved_session_id');
-                 }
+                 } else { localStorage.removeItem('loilo_saved_session_id'); }
             }
         }
         checkAutoLogin();
 
         function escapeHtml(str) { if(!str)return""; return str.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
+
+// --- 資料箱機能 ---
+window.openMaterialBox = function() {
+    document.getElementById('view-material-box').style.display = 'flex';
+};
+
+window.closeMaterialBox = function() {
+    document.getElementById('view-material-box').style.display = 'none';
+};
+
+// ユーザーメニューから開くとき
+        window.openUpdateInfo = async function() {
+            document.getElementById('user-menu-dropdown').style.display = 'none';
+            document.getElementById('view-update-info').style.display = 'flex';
+            
+            const listDiv = document.getElementById('user-update-list');
+            listDiv.innerHTML = "<div style='padding:20px; text-align:center;'>読み込み中...</div>";
+
+            try {
+                const docRef = doc(db, "config", "updates");
+                const snap = await getDoc(docRef);
+                let items = [];
+                if (snap.exists() && snap.data().items) {
+                    items = snap.data().items;
+                } else {
+                    items = DEFAULT_UPDATES;
+                }
+
+                // 日付順などでソートしたければここで行う（現在は登録順）
+                // items.sort(...) 
+
+                let html = "";
+                items.forEach(item => {
+                    const newTag = item.isNew ? `<span class="u-tag new">NEW</span>` : "";
+                    // 改行コードを<br>に変換
+                    const safeBody = escapeHtml(item.body).replace(/\n/g, '<br>');
+                    
+                    html += `
+                        <div class="update-item">
+                            <div class="u-header">
+                                ${newTag}
+                                <span class="u-date">${escapeHtml(item.date)}</span>
+                            </div>
+                            <div class="u-title">${escapeHtml(item.title)}</div>
+                            <div class="u-body">${safeBody}</div>
+                        </div>
+                    `;
+                });
+                listDiv.innerHTML = html;
+
+            } catch(e) {
+                listDiv.innerHTML = "読み込みエラー";
+            }
+        };
+
+        window.closeUpdateInfo = function() {
+            document.getElementById('view-update-info').style.display = 'none';
+        };
+
+window.closeUpdateInfo = function() {
+    document.getElementById('view-update-info').style.display = 'none';
+};
+
+// 管理画面: リスト描画
+        async function renderAdminUpdates() {
+            const container = document.getElementById('admin-update-list-container');
+            container.innerHTML = "読み込み中...";
+            
+            try {
+                const docRef = doc(db, "config", "updates");
+                const snap = await getDoc(docRef);
+                let items = [];
+                if (snap.exists() && snap.data().items) items = snap.data().items;
+
+                container.innerHTML = "";
+                // 新しいものが上に来るように逆順表示
+                [...items].reverse().forEach((item, index) => {
+                    // indexはreverseされているので、削除用に元のインデックスを計算
+                    const originalIndex = items.length - 1 - index;
+                    
+                    const newBadge = item.isNew ? "<span style='color:red; font-weight:bold;'>[NEW]</span> " : "";
+                    const div = document.createElement('div');
+                    div.className = 'admin-upd-item';
+                    div.innerHTML = `
+                        <button class="admin-upd-del" onclick="deleteUpdateItem(${originalIndex})">削除</button>
+                        <div class="admin-upd-header">${newBadge}${escapeHtml(item.date)}</div>
+                        <div class="admin-upd-title">${escapeHtml(item.title)}</div>
+                        <div class="admin-upd-body">${escapeHtml(item.body)}</div>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch(e) {
+                container.innerHTML = "エラー: " + e.message;
+            }
+        }
+
+        // 管理画面: 追加
+        window.addUpdateItem = async function() {
+            const date = document.getElementById('upd-input-date').value;
+            const title = document.getElementById('upd-input-title').value;
+            const body = document.getElementById('upd-input-body').value;
+            const isNew = document.getElementById('upd-input-new').checked;
+
+            if(!date || !title || !body) { alert("すべての項目を入力してください"); return; }
+
+            try {
+                const docRef = doc(db, "config", "updates");
+                const snap = await getDoc(docRef);
+                let items = [];
+                if (snap.exists() && snap.data().items) items = snap.data().items;
+
+                // 先頭に追加するか末尾に追加するか。ここでは「新しい情報をリストの先頭(index 0)」に追加すると仮定
+                // ただしrenderAdminUpdatesでreverseしているので、データ構造としてはpushで末尾に追加し、表示時に反転させるのが一般的
+                items.push({
+                    id: Date.now(),
+                    date: date,
+                    title: title,
+                    body: body,
+                    isNew: isNew
+                });
+
+                await setDoc(docRef, { items: items });
+                
+                // 入力クリア
+                document.getElementById('upd-input-title').value = "";
+                document.getElementById('upd-input-body').value = "";
+                renderAdminUpdates();
+                alert("追加しました");
+            } catch(e) { alert("エラー: " + e.message); }
+        };
+
+        // 管理画面: 削除
+        window.deleteUpdateItem = async function(index) {
+            if(!confirm("このお知らせを削除しますか？")) return;
+            try {
+                const docRef = doc(db, "config", "updates");
+                const snap = await getDoc(docRef);
+                let items = [];
+                if (snap.exists() && snap.data().items) items = snap.data().items;
+
+                items.splice(index, 1); // 指定インデックスを削除
+
+                await setDoc(docRef, { items: items });
+                renderAdminUpdates();
+            } catch(e) { alert("エラー: " + e.message); }
+        };
+
     </script>
 </body>
 </html>
