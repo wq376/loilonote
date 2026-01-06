@@ -97,7 +97,7 @@
         .icon-label-white { color: #fff; font-size: 0.65rem; margin-top: 3px; font-weight: bold; }
         .header-info-edit { position: absolute; top: 15px; right: 20px; text-align: right; color: #fff; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; }
         
-        /* ★名前エリアの変更 (背景削除) */
+        /* 名前エリア */
         .user-name-area { 
             font-size: 1.1rem; font-weight: bold; cursor: pointer; 
             display: flex; align-items: center; 
@@ -165,11 +165,12 @@
         .admin-close-btn { background: #555; border: 1px solid #777; color: #fff; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
         
         .admin-layout { display: flex; flex: 1; overflow: hidden; }
+        /* ★修正: 左側6、右側4に戻す */
         .admin-left-col { flex: 6; display: flex; flex-direction: column; border-right: 1px solid #eee; }
         .admin-right-col { flex: 4; display: flex; flex-direction: column; background: #f9f9f9; border-left: 1px solid #ddd; }
         
         .admin-tabs { display: flex; background: #eee; }
-        .admin-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; }
+        .admin-tab { flex: 1; padding: 10px 4px; text-align: center; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; font-size: 0.85rem; white-space: nowrap; }
         .admin-tab.active { background: #fff; border-bottom: 2px solid #007aff; color: #007aff; }
         .admin-tab-content { flex: 1; overflow-y: auto; padding: 10px; display: none; }
         .admin-tab-content.active { display: block; }
@@ -243,6 +244,11 @@
         .close-schedule-btn { padding: 10px 30px; background: #007aff; color: #fff; border: none; border-radius: 20px; font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .admin-schedule-input { width: 100%; border: none; text-align: center; font-family: inherit; font-size: 1rem; background: transparent; outline: none; }
         .admin-schedule-input:focus { background: #e6f2ff; }
+        /* 追加: 時間割設定用スタイル */
+        .sch-type-select { width: 90%; padding: 2px; font-size: 0.8rem; }
+        .sch-lunch-select { width: 90%; padding: 2px; font-size: 0.8rem; }
+        .memo-area { width: 90%; height: 60px; margin-top: 15px; border: 1px solid #ccc; padding: 10px; font-family: inherit; border-radius: 4px; resize: none; }
+        .memo-display-area { width: 90%; margin: 15px auto; padding: 15px; background: #f9f9f9; border: 1px solid #eee; border-radius: 6px; text-align: left; font-size: 0.95rem; color: #333; white-space: pre-wrap; }
 
         /* スイッチ系共通 */
         .toggle-switch { position: relative; width: 50px; height: 30px; }
@@ -509,9 +515,16 @@
                     </div>
                     <div id="admin-schedule-container" style="padding:0 15px;">
                         <table class="schedule-table">
-                            <thead><tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr></thead>
+                            <thead>
+                                <tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr>
+                                <!-- 追加: 時程と給食の設定行 -->
+                                <tr id="adm-sch-row-type"><th>時程</th><!-- JSで生成 --></tr>
+                                <tr id="adm-sch-row-lunch"><th>給食</th><!-- JSで生成 --></tr>
+                            </thead>
                             <tbody id="admin-schedule-body"></tbody>
                         </table>
+                        <div style="text-align:left; margin-top:10px; font-weight:bold;">備考設定</div>
+                        <textarea id="admin-schedule-memo" class="memo-area" placeholder="生徒画面に表示する備考を入力"></textarea>
                     </div>
                 </div>
                 <div id="tab-content-server" class="admin-tab-content">
@@ -677,11 +690,17 @@
             <div class="schedule-box" onclick="event.stopPropagation()">
                 <h3 style="margin-bottom:20px;">今週の時間割</h3>
                 <table class="schedule-table">
-                    <thead><tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr></thead>
+                    <!-- 追加: 生徒側時間割のヘッダー -->
+                    <thead id="student-schedule-head">
+                        <!-- JSで動的生成 -->
+                    </thead>
                     <tbody id="student-schedule-body">
                         <!-- JSで動的生成 -->
                     </tbody>
                 </table>
+                <div style="text-align:left; margin-top:10px; font-weight:bold;">備考</div>
+                <!-- 修正: 表示専用に変更 -->
+                <div id="student-schedule-memo" class="memo-display-area"></div>
                 <button class="close-schedule-btn" onclick="closeSchedule()">閉じる</button>
             </div>
         </div>
@@ -1103,21 +1122,75 @@
             window.open('https://wq376.github.io/loilonote/1729/reiwa7.png', '_blank');
         };
 
+        // --- 追加: 時間割関連ロジック ---
+        
         async function renderStudentSchedule() {
+            const thead = document.getElementById("student-schedule-head");
             const tbody = document.getElementById("student-schedule-body");
             tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
+            
             try {
                 const docRef = doc(db, "config", "schedule");
                 const snap = await getDoc(docRef);
                 let scheduleData = [];
-                if (snap.exists() && snap.data().data) { scheduleData = snap.data().data; } else {
+                let dayInfo = [{},{},{},{},{}];
+                let memo = "";
+
+                if (snap.exists()) {
+                    if (snap.data().data) scheduleData = snap.data().data;
+                    if (snap.data().dayInfo) dayInfo = snap.data().dayInfo;
+                    if (snap.data().memo) memo = snap.data().memo;
+                } else {
                     scheduleData = [ "国語", "数学", "理科", "英語", "社会", "数学", "英語", "国語", "社会", "理科", "体育", "音楽", "美術", "技術", "家庭", "英語", "理科", "社会", "国語", "数学", "社会", "国語", "数学", "理科", "英語", "総合", "学活", "道徳", "選択", "HR" ];
                 }
-                let html = "";
-                for(let i=0; i<4; i++) { html += `<tr><td>${i+1}</td>`; for(let j=0; j<5; j++) { html += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } html += "</tr>"; }
-                html += `<tr><td colspan="6" style="background:#fafafa; color:#888;">昼休み</td></tr>`;
-                for(let i=4; i<6; i++) { html += `<tr><td>${i+1}</td>`; for(let j=0; j<5; j++) { html += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } html += "</tr>"; }
-                tbody.innerHTML = html;
+
+                // 備考を表示
+                document.getElementById('student-schedule-memo').textContent = memo;
+
+                // ヘッダー生成 (曜日、時程)
+                let headHtml = `<tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr>`;
+                
+                // 時程行
+                headHtml += `<tr><th>時程</th>`;
+                for(let j=0; j<5; j++) {
+                    const type = dayInfo[j].type || "none";
+                    let label = "";
+                    if(type === 'A') label = "A時程";
+                    else if(type === 'B') label = "B時程";
+                    else label = "-"; // なし
+                    headHtml += `<td>${label}</td>`;
+                }
+                headHtml += `</tr>`;
+                thead.innerHTML = headHtml;
+
+                // 本体生成
+                let bodyHtml = "";
+                // 1-4限
+                for(let i=0; i<4; i++) { 
+                    bodyHtml += `<tr><td>${i+1}</td>`; 
+                    for(let j=0; j<5; j++) { bodyHtml += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } 
+                    bodyHtml += "</tr>"; 
+                }
+                
+                // ★給食行の挿入 (4限と昼休みの間)
+                bodyHtml += `<tr><th>給食</th>`;
+                for(let j=0; j<5; j++) {
+                    const hasLunch = dayInfo[j].lunch !== false; // デフォルトtrue
+                    bodyHtml += `<td>${hasLunch ? "○" : "×"}</td>`;
+                }
+                bodyHtml += `</tr>`;
+
+                // 昼休み
+                bodyHtml += `<tr><td colspan="6" style="background:#fafafa; color:#888;">昼休み</td></tr>`;
+                
+                // 5-6限
+                for(let i=4; i<6; i++) { 
+                    bodyHtml += `<tr><td>${i+1}</td>`; 
+                    for(let j=0; j<5; j++) { bodyHtml += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } 
+                    bodyHtml += "</tr>"; 
+                }
+                tbody.innerHTML = bodyHtml;
+
             } catch(e) { console.error(e); tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>"; }
         }
 
@@ -1128,9 +1201,49 @@
                 const docRef = doc(db, "config", "schedule");
                 const snap = await getDoc(docRef);
                 let scheduleData = [];
-                if (snap.exists() && snap.data().data) { scheduleData = snap.data().data; } else {
+                let dayInfo = [{},{},{},{},{}];
+                let memo = "";
+
+                if (snap.exists()) {
+                    if (snap.data().data) scheduleData = snap.data().data;
+                    if (snap.data().dayInfo) dayInfo = snap.data().dayInfo;
+                    if (snap.data().memo) memo = snap.data().memo;
+                } else {
                     scheduleData = [ "国語", "数学", "理科", "英語", "社会", "数学", "英語", "国語", "社会", "理科", "体育", "音楽", "美術", "技術", "家庭", "英語", "理科", "社会", "国語", "数学", "社会", "国語", "数学", "理科", "英語", "総合", "学活", "道徳", "選択", "HR" ];
                 }
+
+                // 備考入力欄にセット
+                document.getElementById('admin-schedule-memo').value = memo;
+
+                // 管理画面ヘッダー部分への注入
+                const typeRow = document.getElementById('adm-sch-row-type');
+                const lunchRow = document.getElementById('adm-sch-row-lunch');
+                
+                let typeHtml = "<th>時程</th>";
+                let lunchHtml = "<th>給食</th>";
+
+                for(let j=0; j<5; j++) {
+                    const info = dayInfo[j] || {};
+                    // 時程セレクト
+                    typeHtml += `<td>
+                        <select class="sch-type-select" data-col="${j}">
+                            <option value="none" ${info.type==='none'?'selected':''}>なし</option>
+                            <option value="A" ${info.type==='A'?'selected':''}>A時程</option>
+                            <option value="B" ${info.type==='B'?'selected':''}>B時程</option>
+                        </select>
+                    </td>`;
+                    
+                    // 給食セレクト
+                    lunchHtml += `<td>
+                        <select class="sch-lunch-select" data-col="${j}">
+                            <option value="true" ${info.lunch!==false?'selected':''}>あり</option>
+                            <option value="false" ${info.lunch===false?'selected':''}>なし</option>
+                        </select>
+                    </td>`;
+                }
+                typeRow.innerHTML = typeHtml;
+                lunchRow.innerHTML = lunchHtml;
+
                 let html = "";
                 for(let i=0; i<6; i++) { html += `<tr><td>${i+1}</td>`; for(let j=0; j<5; j++) { const val = scheduleData[i * 5 + j] || ""; html += `<td><input type="text" class="admin-schedule-input" value="${escapeHtml(val)}" data-row="${i}" data-col="${j}"></td>`; } html += "</tr>"; }
                 tbody.innerHTML = html;
@@ -1138,10 +1251,27 @@
         }
 
         window.saveSchedule = async function() {
+            // 時間割データ収集
             const inputs = document.querySelectorAll('.admin-schedule-input');
             let flatData = new Array(30).fill("");
             inputs.forEach(input => { const r = parseInt(input.dataset.row); const c = parseInt(input.dataset.col); flatData[r * 5 + c] = input.value; });
-            try { await setDoc(doc(db, "config", "schedule"), { data: flatData }, { merge: true }); alert("時間割を保存しました"); logSystemEvent("設定変更", "時間割を更新", currentLoginId || "admin"); } catch(e) { alert("保存エラー: " + e.message); }
+            
+            // 時程・給食データ収集
+            let dayInfo = [];
+            for(let j=0; j<5; j++) {
+                const typeVal = document.querySelector(`.sch-type-select[data-col="${j}"]`).value;
+                const lunchVal = document.querySelector(`.sch-lunch-select[data-col="${j}"]`).value === "true";
+                dayInfo.push({ type: typeVal, lunch: lunchVal });
+            }
+            
+            // 備考データ収集
+            const memo = document.getElementById('admin-schedule-memo').value;
+
+            try { 
+                await setDoc(doc(db, "config", "schedule"), { data: flatData, dayInfo: dayInfo, memo: memo }, { merge: true }); 
+                alert("時間割を保存しました"); 
+                logSystemEvent("設定変更", "時間割を更新", currentLoginId || "admin"); 
+            } catch(e) { alert("保存エラー: " + e.message); }
         };
 
         document.getElementById("admin-login-btn").addEventListener("click", performAdminLogin);
@@ -1595,23 +1725,6 @@
         }
         initStatusDB();
 
-// --- アップデート情報管理 ---
-        const DEFAULT_UPDATES = [
-            { id: 1, date: "2025.12.25", isNew: true, title: "冬の大型アップデート (v5.30)", body: "・サービス状況確認画面を追加しました。\n・資料箱にAIツールへのリンク集を追加しました。\n・管理者機能を強化し、サーバーの切替が可能になりました。" },
-            { id: 2, date: "2025.12.10", isNew: false, title: "不具合の修正", body: "・特定の端末でカメラが起動しない問題を修正しました。\n・UIの表示崩れを調整しました。" }
-        ];
-
-        async function initUpdateDB() {
-            try {
-                const docRef = doc(db, "config", "updates");
-                const snap = await getDoc(docRef);
-                if (!snap.exists()) {
-                    await setDoc(docRef, { items: DEFAULT_UPDATES });
-                }
-            } catch(e) { console.error(e); }
-        }
-        initUpdateDB();
-
         window.openServiceStatus = function() {
             document.getElementById('user-menu-dropdown').style.display = 'none';
             document.getElementById('view-service-status').style.display = 'flex';
@@ -1626,7 +1739,6 @@
             }
         });
 
-// 1. 描画関数の修正 (ユーザー側への反映)
         function renderServiceStatusPage(data) {
             let allOk = true; let hasWarn = false;
             Object.values(data.services).forEach(s => { if(s.status === 'error') allOk = false; if(s.status === 'warn') hasWarn = true; });
@@ -1667,7 +1779,6 @@
             });
         }
 
-        // 2. 読み込み関数の修正 (管理者画面へのセット)
         async function loadAdminStatusSettings() {
             const docRef = doc(db, "config", "service_status");
             const snap = await getDoc(docRef);
@@ -1696,7 +1807,6 @@
             });
         }
 
-        // 3. 保存関数の修正 (Firestoreへの保存)
         window.saveServiceStatusConfig = async function() {
             const showMaintenance = document.getElementById('adm-maint-active').checked;
             const maintTitle = document.getElementById('adm-maint-title').value;
@@ -1745,153 +1855,6 @@
         checkAutoLogin();
 
         function escapeHtml(str) { if(!str)return""; return str.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
-
-// --- 資料箱機能 ---
-window.openMaterialBox = function() {
-    document.getElementById('view-material-box').style.display = 'flex';
-};
-
-window.closeMaterialBox = function() {
-    document.getElementById('view-material-box').style.display = 'none';
-};
-
-// ユーザーメニューから開くとき
-        window.openUpdateInfo = async function() {
-            document.getElementById('user-menu-dropdown').style.display = 'none';
-            document.getElementById('view-update-info').style.display = 'flex';
-            
-            const listDiv = document.getElementById('user-update-list');
-            listDiv.innerHTML = "<div style='padding:20px; text-align:center;'>読み込み中...</div>";
-
-            try {
-                const docRef = doc(db, "config", "updates");
-                const snap = await getDoc(docRef);
-                let items = [];
-                if (snap.exists() && snap.data().items) {
-                    items = snap.data().items;
-                } else {
-                    items = DEFAULT_UPDATES;
-                }
-
-                // 日付順などでソートしたければここで行う（現在は登録順）
-                // items.sort(...) 
-
-                let html = "";
-                items.forEach(item => {
-                    const newTag = item.isNew ? `<span class="u-tag new">NEW</span>` : "";
-                    // 改行コードを<br>に変換
-                    const safeBody = escapeHtml(item.body).replace(/\n/g, '<br>');
-                    
-                    html += `
-                        <div class="update-item">
-                            <div class="u-header">
-                                ${newTag}
-                                <span class="u-date">${escapeHtml(item.date)}</span>
-                            </div>
-                            <div class="u-title">${escapeHtml(item.title)}</div>
-                            <div class="u-body">${safeBody}</div>
-                        </div>
-                    `;
-                });
-                listDiv.innerHTML = html;
-
-            } catch(e) {
-                listDiv.innerHTML = "読み込みエラー";
-            }
-        };
-
-        window.closeUpdateInfo = function() {
-            document.getElementById('view-update-info').style.display = 'none';
-        };
-
-window.closeUpdateInfo = function() {
-    document.getElementById('view-update-info').style.display = 'none';
-};
-
-// 管理画面: リスト描画
-        async function renderAdminUpdates() {
-            const container = document.getElementById('admin-update-list-container');
-            container.innerHTML = "読み込み中...";
-            
-            try {
-                const docRef = doc(db, "config", "updates");
-                const snap = await getDoc(docRef);
-                let items = [];
-                if (snap.exists() && snap.data().items) items = snap.data().items;
-
-                container.innerHTML = "";
-                // 新しいものが上に来るように逆順表示
-                [...items].reverse().forEach((item, index) => {
-                    // indexはreverseされているので、削除用に元のインデックスを計算
-                    const originalIndex = items.length - 1 - index;
-                    
-                    const newBadge = item.isNew ? "<span style='color:red; font-weight:bold;'>[NEW]</span> " : "";
-                    const div = document.createElement('div');
-                    div.className = 'admin-upd-item';
-                    div.innerHTML = `
-                        <button class="admin-upd-del" onclick="deleteUpdateItem(${originalIndex})">削除</button>
-                        <div class="admin-upd-header">${newBadge}${escapeHtml(item.date)}</div>
-                        <div class="admin-upd-title">${escapeHtml(item.title)}</div>
-                        <div class="admin-upd-body">${escapeHtml(item.body)}</div>
-                    `;
-                    container.appendChild(div);
-                });
-            } catch(e) {
-                container.innerHTML = "エラー: " + e.message;
-            }
-        }
-
-        // 管理画面: 追加
-        window.addUpdateItem = async function() {
-            const date = document.getElementById('upd-input-date').value;
-            const title = document.getElementById('upd-input-title').value;
-            const body = document.getElementById('upd-input-body').value;
-            const isNew = document.getElementById('upd-input-new').checked;
-
-            if(!date || !title || !body) { alert("すべての項目を入力してください"); return; }
-
-            try {
-                const docRef = doc(db, "config", "updates");
-                const snap = await getDoc(docRef);
-                let items = [];
-                if (snap.exists() && snap.data().items) items = snap.data().items;
-
-                // 先頭に追加するか末尾に追加するか。ここでは「新しい情報をリストの先頭(index 0)」に追加すると仮定
-                // ただしrenderAdminUpdatesでreverseしているので、データ構造としてはpushで末尾に追加し、表示時に反転させるのが一般的
-                items.push({
-                    id: Date.now(),
-                    date: date,
-                    title: title,
-                    body: body,
-                    isNew: isNew
-                });
-
-                await setDoc(docRef, { items: items });
-                
-                // 入力クリア
-                document.getElementById('upd-input-title').value = "";
-                document.getElementById('upd-input-body').value = "";
-                renderAdminUpdates();
-                alert("追加しました");
-            } catch(e) { alert("エラー: " + e.message); }
-        };
-
-        // 管理画面: 削除
-        window.deleteUpdateItem = async function(index) {
-            if(!confirm("このお知らせを削除しますか？")) return;
-            try {
-                const docRef = doc(db, "config", "updates");
-                const snap = await getDoc(docRef);
-                let items = [];
-                if (snap.exists() && snap.data().items) items = snap.data().items;
-
-                items.splice(index, 1); // 指定インデックスを削除
-
-                await setDoc(docRef, { items: items });
-                renderAdminUpdates();
-            } catch(e) { alert("エラー: " + e.message); }
-        };
-
     </script>
 </body>
 </html>
