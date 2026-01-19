@@ -2,6 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <!-- ↓ YouTube再生時のセキュリティエラー(153)を防ぐために必要 -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="loilo.ico" type="image/x-icon">
     <title>ロイロノート スクール</title>
@@ -602,7 +604,8 @@
             <div class="list-header-top">
                 <div class="tab-container">
                     <div class="tab-btn tab-active"><img src="no.png" class="tab-icon">ノート</div>
-                    <div class="tab-btn"><img src="kyo.png" class="tab-icon">共有ノート</div>
+                    <!-- ↓↓ 変更点: 「共有ノート」にonclickイベントを追加 -->
+                    <div class="tab-btn" onclick="openYoutube()"><img src="kyo.png" class="tab-icon">共有ノート</div>
                     <div class="tab-btn"><img src="tei.png" class="tab-icon">提出箱</div>
                     <div class="tab-btn"><img src="tai.png" class="tab-icon">タイムライン</div>
                 </div>
@@ -839,7 +842,7 @@
         <strong id="disp-maint-target-title">対象サービス</strong>
         
         <!-- ★ここにもIDを追加 -->
-        <p id="disp-maint-target-msg">下記時間のどこかでサーバーに接続できないおそれがあります。</p>
+        <p id="disp-maint-target-msg">下記時間のどこかでサーバーに接続できないおそれがあります。 </p>
         
         <div class="maint-time" id="disp-maint-time">2026/1/5 22:00 〜 23:00</div>
     </div>
@@ -848,6 +851,35 @@
             <!-- サービスリスト -->
             <div id="service-status-list">
                 <!-- JSで生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ↓↓↓ 新規追加: YouTubeプレイヤーの画面 (共有ノート) ↓↓↓ -->
+    <div id="view-youtube" class="overlay-screen">
+        <div class="settings-modal" style="width: 800px; height: auto; background: #222; color: #fff;">
+            <div class="settings-header" style="background: #333; border-bottom: 1px solid #444; color: #fff;">
+                <span class="settings-close-btn" onclick="closeYoutube()" style="color: #fff;">閉じる</span>
+                <span class="settings-title">共有ノート (YouTube Player)</span>
+                <span style="width:40px;"></span>
+            </div>
+            <div class="settings-content" style="text-align: center;">
+                <p>YouTubeの動画URL、または動画IDを入力してください</p>
+                
+                <input type="text" id="yt-url-input" placeholder="例: https://www.youtube.com/watch?v=dQw4w9WgXcQ" style="width: 70%; padding: 10px; border-radius: 5px; border: none; margin-bottom: 20px;">
+                <button onclick="playYoutubeVideo()" style="padding: 10px 20px; border-radius: 5px; border: none; background-color: #ff0000; color: white; cursor: pointer; font-weight: bold;">再生</button>
+
+                <div style="position: relative; padding-bottom: 56.25%; height: 0; margin-top: 20px; background: #000;">
+                    <iframe id="yt-player-frame" 
+                        src="" 
+                        title="YouTube video player"
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                        allowfullscreen>
+                    </iframe>
+                </div>
             </div>
         </div>
     </div>
@@ -1855,6 +1887,35 @@
         checkAutoLogin();
 
         function escapeHtml(str) { if(!str)return""; return str.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
+
+        // ↓↓↓ 新規追加: YouTubeプレイヤー用スクリプト ↓↓↓
+        window.openYoutube = function() {
+            document.getElementById('view-youtube').style.display = 'flex';
+        };
+        window.closeYoutube = function() {
+            document.getElementById('view-youtube').style.display = 'none';
+            // 閉じたときに動画を停止するためにsrcを空にする
+            document.getElementById('yt-player-frame').src = "";
+        };
+        window.playYoutubeVideo = function() {
+            const input = document.getElementById('yt-url-input').value;
+            let videoId = "";
+            if (input.includes("v=")) {
+                videoId = input.split('v=')[1];
+                const ampersandPosition = videoId.indexOf('&');
+                if (ampersandPosition != -1) { videoId = videoId.substring(0, ampersandPosition); }
+            } else if (input.includes("youtu.be/")) {
+                videoId = input.split('youtu.be/')[1];
+            } else {
+                videoId = input;
+            }
+            if (videoId) {
+                // セキュリティエラー対策済みのURL (nocookie)
+                document.getElementById('yt-player-frame').src = "https://www.youtube-nocookie.com/embed/" + videoId;
+            } else {
+                alert("URLまたはIDを入力してください");
+            }
+        };
     </script>
 </body>
 </html>
