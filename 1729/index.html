@@ -969,28 +969,59 @@
         const replyTargetText = document.getElementById("reply-target-text");
         const PHP_IMAGE_API = "https://cf890473.cloudfree.jp/api.php";
 
-        async function initDB() {
+async function initDB() {
             try {
+                // ユーザー初期化
                 const docRef = doc(db, "config", "users");
                 const docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    await setDoc(docRef, INITIAL_USERS);
-                    console.log("初期ユーザーデータを構築しました");
-                }
+                if (!docSnap.exists()) { await setDoc(docRef, INITIAL_USERS); }
+
+                // フィルター初期化
                 const filterRef = doc(db, "config", "filters");
                 const filterSnap = await getDoc(filterRef);
-                if (!filterSnap.exists()) {
-                    await setDoc(filterRef, { words: ["死ね", "殺す", "バカ", "アホ", "うざい"] });
-                    console.log("初期フィルターデータを構築しました");
-                }
+                if (!filterSnap.exists()) { await setDoc(filterRef, { words: ["死ね", "殺す", "バカ", "アホ", "うざい"] }); }
+
+                // --- ↓↓↓ ここを追加：お知らせの初期化 ↓↓↓ ---
+                const updateRef = doc(db, "config", "updates");
+                const updateSnap = await getDoc(updateRef);
+                if (!updateSnap.exists()) { await setDoc(updateRef, { list: [] }); }
+                // --- ↑↑↑ ここまで ↑↑↑ ---
+
             } catch(e) { console.error("DB初期化エラー", e); }
         }
         initDB();
 
-        onSnapshot(doc(db, "config", "filters"), (docSnap) => {
-            if (docSnap.exists()) {
-                ngWords = docSnap.data().words || [];
-                renderFilterList(); 
+// 3. お知らせ同期（最新のデータを常に反映）
+        onSnapshot(doc(db, "config", "updates"), (snap) => {
+            const list = (snap.exists() && snap.data().list) ? snap.data().list : [];
+            
+            // 【ユーザー画面】のリストを更新
+            const uDiv = document.getElementById("user-update-list"); 
+            if (uDiv) {
+                uDiv.innerHTML = list.length ? "" : '<div style="padding:20px; text-align:center; color:#888;">お知らせはありません</div>';
+                list.slice().reverse().forEach(u => {
+                    uDiv.innerHTML += `
+                        <div class="update-item">
+                            <div class="u-header">${u.isNew ? `<span class="u-tag new">NEW</span>` : ""}<span class="u-date">${escapeHtml(u.date)}</span></div>
+                            <div class="u-title">${escapeHtml(u.title)}</div>
+                            <div class="u-body" style="white-space:pre-wrap;">${escapeHtml(u.body)}</div>
+                        </div>`;
+                });
+            }
+
+            // 【管理者画面】のリストを更新
+            const aDiv = document.getElementById("admin-update-list-container"); 
+            if (aDiv) {
+                aDiv.innerHTML = "";
+                list.forEach((u, i) => {
+                    aDiv.innerHTML += `
+                        <div class="admin-upd-item">
+                            <div class="admin-upd-header">${escapeHtml(u.date)} ${u.isNew ? "[NEW]" : ""}</div>
+                            <div class="admin-upd-title">${escapeHtml(u.title)}</div>
+                            <div class="admin-upd-body" style="white-space:pre-wrap;">${escapeHtml(u.body)}</div>
+                            <button class="admin-upd-del" onclick="deleteUpdateItem(${i})">削除</button>
+                        </div>`;
+                });
             }
         });
 
@@ -1903,6 +1934,48 @@ document.getElementById("view-edit").addEventListener("click", (e) => {
             try { await setDoc(doc(db, "config", "service_status"), newData); alert("ステータスを更新しました"); } catch(e) { alert("更新エラー: " + e.message); }
         };
 
+        // お知らせ追加機能
+        window.addUpdateItem = async () => {
+            const dateInput = document.getElementById("upd-input-date");
+            const isNewInput = document.getElementById("upd-input-new");
+            const titleInput = document.getElementById("upd-input-title");
+            const bodyInput = document.getElementById("upd-input-body");
+
+            const item = {
+                date: dateInput.value,
+                isNew: isNewInput.checked,
+                title: titleInput.value,
+                body: bodyInput.value
+            };
+
+            if(!item.title) { alert("タイトルを入力してください"); return; }
+
+            try {
+                const ref = doc(db, "config", "updates");
+                await updateDoc(ref, { list: arrayUnion(item) });
+                titleInput.value = "";
+                bodyInput.value = "";
+                alert("お知らせを追加しました");
+            } catch(e) {
+                // ドキュメントが存在しない場合は新規作成
+                const ref = doc(db, "config", "updates");
+                await setDoc(ref, { list: [item] });
+                alert("お知らせ用データを作成し、追加しました");
+            }
+        };
+
+        // お知らせ削除機能
+        window.deleteUpdateItem = async (idx) => {
+            if(!confirm("このお知らせを削除しますか？")) return;
+            const ref = doc(db, "config", "updates");
+            const snap = await getDoc(ref);
+            if(snap.exists()) {
+                const list = snap.data().list || [];
+                list.splice(idx, 1); // 指定した番号のデータを削除
+                await setDoc(ref, { list: list });
+            }
+        };
+
         async function checkAutoLogin() {
             const savedId = localStorage.getItem('loilo_saved_session_id');
             if(!savedId) return;
@@ -1971,4 +2044,3 @@ window.playYoutubeVideo = function() {
     </script>
 </body>
 </html>
-
