@@ -964,88 +964,10 @@
         const btnCamera = document.getElementById("btn-camera");
         const btnFile = document.querySelector(".icon-btn[onclick*='file-input']");
         const chatInput = document.getElementById("chat-input");
-// --- ▼ ここを書き換え ▼ ---
-        
-        // PHPサーバーのURL (あなたのシンフリーサーバーのURLを入れてください)
-        // 例: "https://cf890473.cloudfree.jp/api.php"
-        const PHP_API_URL = "https://cf890473.cloudfree.jp/api.php"; 
-
-        document.getElementById("send-btn").onclick = async () => {
-            const txt = document.getElementById("chat-input").value;
-            const file = document.getElementById("file-input").files[0];
-            if(!txt && !file) return;
-
-            let imgUrl = null;
-            
-            // 画像がある場合
-            if(file) {
-                // 1. まずローカルでBase64にする
-                const base64 = await new Promise(r => {
-                    const fr = new FileReader(); 
-                    fr.onload = e => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const cvs = document.createElement('canvas');
-                            // サイズ調整 (PHPに送るため少し大きめでもOKだが1200pxくらいに制限)
-                            const max = 1200;
-                            let w = img.width, h = img.height;
-                            if(w>h && w>max){ h*=max/w; w=max; } else if(h>max){ w*=max/h; h=max; }
-                            cvs.width=w; cvs.height=h;
-                            cvs.getContext('2d').drawImage(img,0,0,w,h);
-                            r(cvs.toDataURL('image/jpeg', 0.8));
-                        };
-                        img.src = e.target.result;
-                    };
-                    fr.readAsDataURL(file);
-                });
-
-                // 2. シンフリーサーバー(PHP)にアップロード
-                try {
-                    const res = await fetch(PHP_API_URL, {
-                        method: "POST",
-                        body: JSON.stringify({
-                            cmd: "upload_image",
-                            payload: { image: base64 }
-                        })
-                    });
-                    const json = await res.json();
-                    
-                    if(json.status === "ok") {
-                        imgUrl = json.url; // PHPから返ってきた画像のURL
-                    } else {
-                        alert("画像のアップロードに失敗しました");
-                        return;
-                    }
-                } catch(e) {
-                    console.error(e);
-                    alert("画像サーバーへの接続に失敗しました");
-                    return;
-                }
-                
-                document.getElementById("file-input").value="";
-            }
-
-            // NGワードチェック
-            let safeTxt = txt;
-            ngWords.forEach(w => { if(safeTxt.includes(w)) safeTxt = safeTxt.replace(new RegExp(w,'g'), "***"); });
-
-            // 3. Firestoreに保存 (画像はURLとして保存される)
-            await addDoc(collection(db, "fake_loilo_v2"), {
-                text: safeTxt, 
-                imageUrl: imgUrl, // ここに http://.../uploads/xxx.jpg が入る
-                name: (myName||"") + "・" + (currentUserData?.name||"不明"),
-                uid: myUid, 
-                replyTo: replyTargetId, 
-                createdAt: serverTimestamp(), 
-                readBy: []
-            });
-            
-            chatInput.value = ""; 
-            window.cancelReply();
-        };
-        // --- ▲ 書き換えここまで ▲ ---
+        const sendBtn = document.getElementById("send-btn");
         const replyStatusBar = document.getElementById("reply-status-bar");
         const replyTargetText = document.getElementById("reply-target-text");
+        const PHP_IMAGE_API = "https://cf890473.cloudfree.jp/api.php";
 
         async function initDB() {
             try {
@@ -1646,35 +1568,49 @@
 
         window.cancelReply = function() { replyTargetId = null; replyStatusBar.style.display = "none"; }
 
-        async function sendPayload(text="", file=null) {
-            if(!text && !file) return;
-            if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
-            if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
-            let safeText = text;
-            if(safeText) { ngWords.forEach(badWord => { if(badWord && safeText.includes(badWord)) { safeText = safeText.split(badWord).join("*".repeat(badWord.length)); } }); }
-            let imageUrl = null;
-            if(file) {
-                imageUrl = await new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const scale = 800 / Math.max(img.width, img.height, 800);
-                            canvas.width = img.width * scale; canvas.height = img.height * scale;
-                            const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            resolve(canvas.toDataURL('image/jpeg', 0.5));
-                        }; img.src = e.target.result;
-                    }; reader.readAsDataURL(file);
-                });
+async function sendPayload(text="", file=null) {
+    if(!text && !file) return;
+    if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
+    if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
+    
+    let safeText = text;
+    if(safeText) { ngWords.forEach(badWord => { if(badWord && safeText.includes(badWord)) { safeText = safeText.split(badWord).join("*".repeat(badWord.length)); } }); }
+    
+    let imageUrl = null;
+    if(file) {
+        // 1. 画像を読み込む
+        const base64 = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+
+        // 2. シンフリーサーバーに送って、画像のURLをもらう
+        try {
+            const res = await fetch(PHP_IMAGE_API, {
+                method: "POST",
+                body: JSON.stringify({ cmd: "upload_image", payload: { image: base64 } })
+            });
+            const resData = await res.json();
+            if(resData.status === "ok") {
+                imageUrl = resData.url; // ここでURLをゲット
             }
-            let senderName = currentUserData ? currentUserData.name : "Unknown";
-            if (currentUserData && currentUserData.showNickname && myName) { senderName = `${myName}・${currentUserData.name}`; }
-            const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
-            if(replyTargetId) payload.replyTo = replyTargetId;
-            await addDoc(collection(db, "fake_loilo_v2"), payload);
-            chatInput.value = ""; window.cancelReply();
+        } catch(e) {
+            alert("画像サーバーへのアップロードに失敗しました");
+            return;
         }
+    }
+
+    let senderName = currentUserData ? currentUserData.name : "Unknown";
+    if (currentUserData && currentUserData.showNickname && myName) { senderName = `${myName}・${currentUserData.name}`; }
+    
+    // 3. Firebaseには、画像の「URL」だけを保存する
+    const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
+    if(replyTargetId) payload.replyTo = replyTargetId;
+    
+    await addDoc(collection(db, "fake_loilo_v2"), payload);
+    chatInput.value = ""; window.cancelReply();
+}
         sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
         chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
         document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
