@@ -991,25 +991,34 @@ async function initDB() {
         }
         initDB();
 
-// 3. お知らせ同期（最新のデータを常に反映）
+// 3. お知らせ同期（Firebaseからデータを取ってきて画面に表示する）
         onSnapshot(doc(db, "config", "updates"), (snap) => {
             const list = (snap.exists() && snap.data().list) ? snap.data().list : [];
             
-            // 【ユーザー画面】のリストを更新
+            // ユーザーが見るリスト (user-update-list)
             const uDiv = document.getElementById("user-update-list"); 
             if (uDiv) {
-                uDiv.innerHTML = list.length ? "" : '<div style="padding:20px; text-align:center; color:#888;">お知らせはありません</div>';
-                list.slice().reverse().forEach(u => {
-                    uDiv.innerHTML += `
-                        <div class="update-item">
-                            <div class="u-header">${u.isNew ? `<span class="u-tag new">NEW</span>` : ""}<span class="u-date">${escapeHtml(u.date)}</span></div>
-                            <div class="u-title">${escapeHtml(u.title)}</div>
-                            <div class="u-body" style="white-space:pre-wrap;">${escapeHtml(u.body)}</div>
-                        </div>`;
-                });
+                // データがない時は「お知らせはありません」と表示
+                if (list.length === 0) {
+                    uDiv.innerHTML = '<div style="padding:40px; text-align:center; color:#888;">現在、新しいお知らせはありません。</div>';
+                } else {
+                    uDiv.innerHTML = ""; // 一旦クリア
+                    // 最新のものが上に来るように逆順で表示
+                    list.slice().reverse().forEach(u => {
+                        uDiv.innerHTML += `
+                            <div class="update-item">
+                                <div class="u-header">
+                                    ${u.isNew ? `<span class="u-tag new">NEW</span>` : ""}
+                                    <span class="u-date">${escapeHtml(u.date)}</span>
+                                </div>
+                                <div class="u-title">${escapeHtml(u.title)}</div>
+                                <div class="u-body" style="white-space:pre-wrap;">${escapeHtml(u.body)}</div>
+                            </div>`;
+                    });
+                }
             }
 
-            // 【管理者画面】のリストを更新
+            // 管理画面で見れる削除用のリスト (admin-update-list-container)
             const aDiv = document.getElementById("admin-update-list-container"); 
             if (aDiv) {
                 aDiv.innerHTML = "";
@@ -1018,7 +1027,6 @@ async function initDB() {
                         <div class="admin-upd-item">
                             <div class="admin-upd-header">${escapeHtml(u.date)} ${u.isNew ? "[NEW]" : ""}</div>
                             <div class="admin-upd-title">${escapeHtml(u.title)}</div>
-                            <div class="admin-upd-body" style="white-space:pre-wrap;">${escapeHtml(u.body)}</div>
                             <button class="admin-upd-del" onclick="deleteUpdateItem(${i})">削除</button>
                         </div>`;
                 });
@@ -1830,6 +1838,17 @@ document.getElementById("view-edit").addEventListener("click", (e) => {
         window.openServiceStatus = function() {
             document.getElementById('user-menu-dropdown').style.display = 'none';
             document.getElementById('view-service-status').style.display = 'flex';
+        };
+
+        // アップデート情報の画面を開く
+        window.openUpdateInfo = () => {
+            document.getElementById("user-menu-dropdown").style.display = "none"; // メニューを閉じる
+            document.getElementById("view-update-info").style.display = "flex"; // 画面を表示する
+        };
+
+        // アップデート情報の画面を閉じる
+        window.closeUpdateInfo = () => {
+            document.getElementById("view-update-info").style.display = "none";
         };
 
         onSnapshot(doc(db, "config", "service_status"), (docSnap) => {
