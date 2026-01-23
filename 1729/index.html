@@ -1670,7 +1670,17 @@ if (data.uid === myUid && data.createdAt) {
         });
         window.closeCamera = function() { const cameraOverlay = document.getElementById("camera-overlay"); cameraOverlay.style.display = "none"; if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; } };
         document.getElementById("close-camera-btn").addEventListener("click", closeCamera);
-
+// --- 提出箱の外側（紺色の背景）をクリックしたら閉じる機能 ---
+document.getElementById("view-edit").addEventListener("click", (e) => {
+    // クリックされた要素が「view-edit（紺色の背景部分）」そのものだった場合
+    if (e.target.id === "view-edit") {
+        // 提出箱（chat-overlay）が表示されているなら閉じる
+        const chatOverlay = document.getElementById("chat-overlay");
+        if (chatOverlay.style.display === "flex") {
+            toggleChat(false);
+        }
+    }
+});
         document.getElementById("btn-text").addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("color-picker-overlay").style.display = "block"; });
         window.openEditor = function(c) { selectedColor=c; document.getElementById("color-picker-overlay").style.display="none"; document.getElementById("card-editor-overlay").style.background=c; document.getElementById("card-editor-overlay").style.display="flex"; document.getElementById("card-textarea").value=""; document.getElementById("card-textarea").focus(); };
         window.closeEditor = function() { document.getElementById("card-editor-overlay").style.display="none"; };
