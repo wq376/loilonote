@@ -145,6 +145,21 @@
         .wrapper-mine { align-self: flex-end; align-items: flex-end; }
         .wrapper-other { align-self: flex-start; align-items: flex-start; }
         .msg-card { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 1rem; border: 1px solid #eee; position: relative; width: 100%; cursor: pointer; transition: transform 0.1s; }
+        /* --- ↓↓↓ ここを追加してください ↓↓↓ --- */
+
+/* メッセージ内の画像をイイ感じのサイズに収める */
+.msg-content img {
+    max-width: 100%;       /* 横幅は吹き出しの幅に合わせる */
+    max-height: 250px;     /* 高さは最大250pxまで（巨大化防止） */
+    width: auto;           /* 比率を保持 */
+    height: auto;          /* 比率を保持 */
+    border-radius: 6px;    /* 画像の角を少し丸くする */
+    margin-top: 5px;       /* テキストとの間に少し隙間を空ける */
+    object-fit: contain;   /* 枠内にきれいに収める */
+    display: block;        /* レイアウト崩れを防ぐ */
+}
+
+/* --- ↑↑↑ ここまで ↑↑↑ --- */
         .msg-card:active { transform: scale(0.98); }
         .msg-mine { background: #e6f2ff; border: 1px solid #cce5ff; }
         .msg-other { background: #fff; }
@@ -643,7 +658,7 @@
                 <div class="icon-btn" id="btn-text"><img src="text.png" alt="テキスト"></div>
                 <div class="icon-btn" onclick="window.open('https://school.loilo.tv/jp/web.html', '_blank')"><img src="web.png" alt="Web"></div>
                 <div class="icon-btn" onclick="document.getElementById('file-input').click()"><img src="file.png" alt="ファイル"></div>
-                <div class="icon-btn" onclick="window.open('https://wq376.github.io/loilonote/1729/1gatu.jpg', '_blank')"><img src="think.png" alt="ツール"></div>
+                <div class="icon-btn" onclick="window.open('https://wq376.github.io/loilonote/1729/reiwa7.png', '_blank')"><img src="think.png" alt="ツール"></div>
                 <div class="icon-btn" onclick="openSchedule()"><img src="test.png" alt="テスト"></div>
             </div>
             <div class="sidebar-lower">
@@ -933,6 +948,8 @@
         const ADMIN_PASS = "admin";
 
         let currentStream = null;
+        /* --- 変数定義エリアに追加 --- */
+let currentChatDocs = null; // チャットデータを保存しておく変数
         let selectedColor = '#ffcdd2';
         let myName = localStorage.getItem('loilo_v2_name') || "ここに名前を入力";
         let realName = "";
@@ -990,6 +1007,46 @@ async function initDB() {
             } catch(e) { console.error("DB初期化エラー", e); }
         }
         initDB();
+
+/* --- ヘルパー関数の追加 --- */
+function getMyDisplayName() {
+    if (!currentUserData) return "Unknown";
+    // ニックネーム表示設定がONなら「ニックネーム・本名」を返す
+    if (currentUserData.showNickname && myName) {
+         return `${myName}・${currentUserData.name}`;
+    }
+    return currentUserData.name;
+}
+
+/* --- 既読処理関数の追加 --- */
+function checkAndMarkRead() {
+    if (!currentChatDocs) return;
+    const myNameStr = getMyDisplayName();
+    // 既読データとして「UID:名前」という形式で保存する（これで発言してなくても名前がわかる）
+    const readSignature = myUid + ":" + myNameStr;
+
+    currentChatDocs.forEach(docSnap => {
+        const data = docSnap.data();
+        const docId = docSnap.id;
+        
+        // 自分のメッセージには既読をつけない
+        if (data.uid === myUid) return;
+
+        // 既に既読かチェック
+        // (古い形式の"UID"だけの場合と、新しい形式の"UID:名前"の両方に対応)
+        const isRead = data.readBy && data.readBy.some(sig => {
+            const sigUid = sig.includes(':') ? sig.split(':')[0] : sig;
+            return sigUid === myUid;
+        });
+
+        // まだ既読でなければ更新
+        if (!isRead) {
+            updateDoc(doc(db, "fake_loilo_v2", docId), {
+                readBy: arrayUnion(readSignature)
+            });
+        }
+    });
+}
 
 // 3. お知らせ同期（Firebaseからデータを取ってきて画面に表示する）
         onSnapshot(doc(db, "config", "updates"), (snap) => {
@@ -1194,7 +1251,7 @@ async function initDB() {
         // ★★★ 削除されていた関数の復元 ★★★
         window.openTestLinks = function() {
             window.open('https://wq376.github.io/loilonote/1729/kouki.png', '_blank');
-            window.open('https://wq376.github.io/loilonote/1729/1gatu.jpg', '_blank');
+            window.open('https://wq376.github.io/loilonote/1729/reiwa7.png', '_blank');
         };
 
         // --- 追加: 時間割関連ロジック ---
@@ -1597,13 +1654,27 @@ async function initDB() {
         document.getElementById("toggle-chat-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleChat(); });
         document.getElementById("close-chat-x").addEventListener("click", () => toggleChat(false));
 
-        function toggleChat(force) {
-            let show = (chatOverlay.style.display === "flex");
-            if (force !== undefined) show = !force;
-            chatOverlay.style.display = show ? "none" : "flex";
-            if (!show) window.cancelReply();
-            else msgList.scrollTop = msgList.scrollHeight;
-        }
+/* --- toggleChat関数の書き換え（完全版） --- */
+window.toggleChat = function(force) {
+    let isCurrentlyVisible = (chatOverlay.style.display === "flex");
+    let willBeVisible = (force !== undefined) ? !force : !isCurrentlyVisible;
+
+    chatOverlay.style.display = willBeVisible ? "flex" : "none";
+
+    if (willBeVisible) {
+        // ★ 開いた瞬間に既読チェックを行う
+        checkAndMarkRead();
+
+        // 一番下へスクロール
+        setTimeout(() => {
+            msgList.scrollTop = msgList.scrollHeight;
+        }, 10);
+    } else {
+        window.cancelReply();
+    }
+};
+
+/* --- ↑↑↑ ここまで ↑↑↑ --- */
 
         window.cancelReply = function() { replyTargetId = null; replyStatusBar.style.display = "none"; }
 
@@ -1655,46 +1726,84 @@ async function sendPayload(text="", file=null) {
         document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
 
         const qMsg = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
-        onSnapshot(qMsg, (snap) => {
-            msgList.innerHTML = ""; const idMap = {}; const userMap = {}; 
-            snap.forEach(d => { const data = d.data(); idMap[d.id] = data.text || "画像"; if(data.uid && data.name) { const parts = data.name.split('・'); userMap[data.uid] = parts.length > 1 ? parts[1] : data.name; } });
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                const docId = docSnap.id;
-                if (data.uid !== myUid && (!data.readBy || !data.readBy.includes(myUid))) { updateDoc(doc(db, "fake_loilo_v2", docId), { readBy: arrayUnion(myUid) }); }
-                const wrapper = document.createElement("div"); wrapper.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
-                const card = document.createElement("div"); card.className = "msg-card " + (data.uid===myUid?"msg-mine":"msg-other");
-                card.id = "msg-"+docId;
-                card.addEventListener("dblclick", (e)=>{ e.stopPropagation(); replyTargetId=docId; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; chatInput.focus(); });
-                let html = "";
-                if(data.replyTo && idMap[data.replyTo]) html += `<div class="reply-ref" onclick="document.getElementById('msg-${data.replyTo}').scrollIntoView({behavior:'smooth'});">↩ ${escapeHtml(idMap[data.replyTo])}</div>`;
-                if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
-                if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
-if (data.uid === myUid && data.createdAt) {
-                    const diff = (new Date() - data.createdAt.toDate()) / 1000 / 60;
-                    if (diff <= 5 && myPermissions.canUnsend) { html += `<button class="msg-unsend-btn" onclick="unsendMessage('${docId}')">×</button>`; }
-                }
-                
-                // --- ↓↓↓ 追加: 日時表示処理 ↓↓↓ ---
-                let dateStr = "";
-                if (data.createdAt) {
-                    const d = data.createdAt.toDate();
-                    // 例: 2026/1/23 15:45
-                    dateStr = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-                }
-                // --- ↑↑↑ 追加ここまで ↑↑↑ ---
+/* --- onSnapshotの書き換え --- */
+onSnapshot(qMsg, (snap) => {
+    currentChatDocs = snap; // 最新データを保存（既読処理用）
+    msgList.innerHTML = ""; 
+    const idMap = {}; 
+    const userMap = {}; 
 
-                // msg-nameの中に dateStr を表示する span を追加
-                card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)} <span style="font-size:0.75rem; color:#888; font-weight:normal; margin-left:8px;">${dateStr}</span></div><div class="msg-content">${html}</div>`;
-                wrapper.appendChild(card);
-                if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
-                    const read = document.createElement("div"); read.className = "read-label"; const count = data.readBy.length; read.textContent = "既読 " + count;
-                    const readerNames = data.readBy.map(uid => userMap[uid] || "不明").join("、"); read.title = "既読: " + readerNames; wrapper.appendChild(read);
+    snap.forEach(d => { 
+        const data = d.data(); 
+        idMap[d.id] = data.text || "画像"; 
+        if(data.uid && data.name) { 
+            const parts = data.name.split('・'); 
+            userMap[data.uid] = parts.length > 1 ? parts[1] : data.name; 
+        } 
+    });
+
+    // ★ もし提出箱が開いたままなら、新しいメッセージが来てもすぐ既読にする
+    if (document.getElementById("chat-overlay").style.display === "flex") {
+        checkAndMarkRead();
+    }
+
+    snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const docId = docSnap.id;
+        
+        /* --- 以前ここにあった「自動既読」コードは削除しました --- */
+
+        const wrapper = document.createElement("div"); 
+        wrapper.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
+        const card = document.createElement("div"); 
+        card.className = "msg-card " + (data.uid===myUid?"msg-mine":"msg-other");
+        card.id = "msg-"+docId;
+        card.addEventListener("dblclick", (e)=>{ e.stopPropagation(); replyTargetId=docId; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; chatInput.focus(); });
+        
+        let html = "";
+        if(data.replyTo && idMap[data.replyTo]) html += `<div class="reply-ref" onclick="document.getElementById('msg-${data.replyTo}').scrollIntoView({behavior:'smooth'});">↩ ${escapeHtml(idMap[data.replyTo])}</div>`;
+        if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
+        if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
+        
+        if (data.uid === myUid && data.createdAt) {
+            const diff = (new Date() - data.createdAt.toDate()) / 1000 / 60;
+            if (diff <= 5 && myPermissions.canUnsend) { html += `<button class="msg-unsend-btn" onclick="unsendMessage('${docId}')">×</button>`; }
+        }
+        
+        let dateStr = "";
+        if (data.createdAt) {
+            const d = data.createdAt.toDate();
+            dateStr = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+
+        card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)} <span style="font-size:0.75rem; color:#888; font-weight:normal; margin-left:8px;">${dateStr}</span></div><div class="msg-content">${html}</div>`;
+        wrapper.appendChild(card);
+        
+        if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
+            const read = document.createElement("div"); 
+            read.className = "read-label"; 
+            const count = data.readBy.length; 
+            
+            // ★ 修正: 名前が含まれている既読データ("UID:名前")に対応
+            const readerNames = data.readBy.map(entry => {
+                if (entry.includes(':')) {
+                    return entry.split(':')[1]; // 名前を取り出す
                 }
-                msgList.appendChild(wrapper);
-            });
-            msgList.scrollTop = msgList.scrollHeight;
-        });
+                return userMap[entry] || "不明"; // 古いデータはマップから探す
+            }).join("、");
+            
+            read.textContent = "既読 " + count;
+            read.title = "既読: " + readerNames; 
+            wrapper.appendChild(read);
+        }
+        msgList.appendChild(wrapper);
+    });
+    
+    // チャットが開いている時だけスクロール
+    if (document.getElementById("chat-overlay").style.display === "flex") {
+        msgList.scrollTop = msgList.scrollHeight;
+    }
+});
 
         window.unsendMessage = async function(docId) {
             if(!confirm("送信を取り消しますか？")) return;
@@ -2063,4 +2172,3 @@ window.playYoutubeVideo = function() {
     </script>
 </body>
 </html>
-
