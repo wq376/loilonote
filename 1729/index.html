@@ -932,6 +932,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        
         const INITIAL_USERS = {
             "1726": { name: "田中大樹", isAllowed: true, isAdmin: true, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
             "6351": { name: "西尾青葉", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
@@ -1647,34 +1648,56 @@ function checkAndMarkRead() {
             try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("削除失敗: " + e.message); }
         };
 
+// ×ボタンと背景クリックのバグを修正した最終版です
         const chatOverlay = document.getElementById("chat-overlay");
         const msgList = document.getElementById("msg-list");
         const myUid = localStorage.getItem('loilo_v2_uid') || Math.random().toString(36).substring(7); localStorage.setItem('loilo_v2_uid', myUid);
 
-        document.getElementById("toggle-chat-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleChat(); });
-        document.getElementById("close-chat-x").addEventListener("click", () => toggleChat(false));
+        // 「提出」ボタンをクリックした時の処理
+        document.getElementById("toggle-chat-btn").addEventListener("click", (e) => { 
+            e.stopPropagation(); // 背景のクリックイベントに伝わらないようにする
+            toggleChat(); 
+        });
 
-/* --- toggleChat関数の書き換え（完全版） --- */
-window.toggleChat = function(force) {
-    let isCurrentlyVisible = (chatOverlay.style.display === "flex");
-    let willBeVisible = (force !== undefined) ? !force : !isCurrentlyVisible;
+        // 提出箱の「×」ボタンをクリックした時の処理
+        document.getElementById("close-chat-x").addEventListener("click", (e) => { 
+            e.stopPropagation(); // 背景のクリックイベントに伝わらないようにする
+            toggleChat(false); // falseを渡して「確実に閉じる」
+        });
 
-    chatOverlay.style.display = willBeVisible ? "flex" : "none";
+        // ★追加：提出箱の中身（白い部分）をクリックしても閉じないようにする
+        chatOverlay.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
 
-    if (willBeVisible) {
-        // ★ 開いた瞬間に既読チェックを行う
-        checkAndMarkRead();
+        // ★追加：紺色の背景（view-edit）をクリックしたらチャットを閉じる
+        document.getElementById("view-edit").addEventListener("click", (e) => {
+            // チャットが開いている時だけ閉じる
+            if (chatOverlay.style.display === "flex") {
+                toggleChat(false);
+            }
+        });
 
-        // 一番下へスクロール
-        setTimeout(() => {
-            msgList.scrollTop = msgList.scrollHeight;
-        }, 10);
-    } else {
-        window.cancelReply();
-    }
-};
+        /* --- toggleChat関数（バグ修正済・最終版） --- */
+        window.toggleChat = function(force) {
+            let isCurrentlyVisible = (chatOverlay.style.display === "flex");
+            
+            // forceが指定されていればその通りに、なければ反転させる
+            let willBeVisible = (force !== undefined) ? force : !isCurrentlyVisible;
 
-/* --- ↑↑↑ ここまで ↑↑↑ --- */
+            chatOverlay.style.display = willBeVisible ? "flex" : "none";
+
+            if (willBeVisible) {
+                // 【開いた時】
+                checkAndMarkRead(); // 既読処理
+                setTimeout(() => {
+                    msgList.scrollTop = msgList.scrollHeight; // 最新へスクロール
+                }, 10);
+            } else {
+                // 【閉じた時】
+                window.cancelReply(); // 返信モード解除
+            }
+        };
 
         window.cancelReply = function() { replyTargetId = null; replyStatusBar.style.display = "none"; }
 
