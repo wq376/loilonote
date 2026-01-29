@@ -468,13 +468,15 @@
             </div>
         </div>
         
-        <div class="add-user-area" id="admin-add-area">
+<div class="add-user-area" id="admin-add-area">
             <strong>新規追加:</strong>
             <input type="text" id="new-user-id" class="admin-input" placeholder="ID (パスワード)" style="width:120px;">
             <input type="text" id="new-user-name" class="admin-input" placeholder="名前" style="width:150px;">
             <button class="admin-btn" onclick="addNewUser()">追加</button>
             <div style="flex:1;"></div>
             <button class="admin-btn csv" onclick="downloadChatCSV()">📥 CSV保存</button>
+            <!-- ↓ このボタンを追加 -->
+            <button id="admin-delete-logs-btn" class="admin-btn del" onclick="deleteSystemLogs()" style="display: none;">ログ全消去</button>
             <button id="admin-delete-all-btn" class="admin-btn del">⚠ 全消去</button>
         </div>
 
@@ -1555,22 +1557,51 @@ async function logSystemEvent(type, msg, user) {
             });
         }
 
-        window.toggleIdVisibility = function() {
-            if(areIdsVisible) {
-                areIdsVisible = false;
-                renderAdminList();
-                renderSystemLogs(); // 変更点: ログの表示も更新する
+// ★★★ ↓↓ この関数をまるごと追加してください ↓↓ ★★★
+        window.deleteSystemLogs = async function() {
+            if (!areIdsVisible) {
+                alert("この操作を実行する権限がありません。");
                 return;
             }
-            const pass = prompt("ID表示用パスワード:");
-            if (pass === "2012") {
-                areIdsVisible = true;
-                renderAdminList();
-                renderSystemLogs(); // 変更点: ログの表示も更新する
-            } else {
-                alert("パスワードが違います");
+            if (!confirm("【警告】\nすべてのシステムログを完全に削除します。\nこの操作は元に戻せません。よろしいですか？")) {
+                return;
+            }
+            try {
+                const logsCollection = collection(db, "system_logs");
+                const snapshot = await getDocs(logsCollection);
+                const deletePromises = [];
+                snapshot.forEach(doc => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                await Promise.all(deletePromises);
+                alert("すべてのシステムログを削除しました。");
+            } catch (e) {
+                alert("ログの削除中にエラーが発生しました: " + e.message);
+                console.error("ログ削除エラー:", e);
             }
         };
+        // ★★★ ↑↑ ここまでを追加 ↑↑ ★★★
+
+window.toggleIdVisibility = function() {
+    const deleteLogsBtn = document.getElementById('admin-delete-logs-btn');
+
+    if (areIdsVisible) {
+        areIdsVisible = false;
+        deleteLogsBtn.style.display = 'none';
+        renderAdminList();
+        renderSystemLogs();
+        return;
+    }
+    const pass = prompt("ID表示用パスワード:");
+    if (pass === "2012") {
+        areIdsVisible = true;
+        deleteLogsBtn.style.display = 'inline-block';
+        renderAdminList();
+        renderSystemLogs();
+    } else {
+        alert("パスワードが違います");
+    }
+};
 
         async function renderAdminList() {
             const listDiv = document.getElementById("admin-user-list"); 
