@@ -658,7 +658,7 @@
                 <div class="icon-btn" id="btn-text"><img src="text.png" alt="テキスト"></div>
                 <div class="icon-btn" onclick="window.open('https://school.loilo.tv/jp/web.html', '_blank')"><img src="web.png" alt="Web"></div>
                 <div class="icon-btn" onclick="document.getElementById('file-input').click()"><img src="file.png" alt="ファイル"></div>
-                <div class="icon-btn" onclick="window.open('https://wq376.github.io/loilonote/1729/1gatu.jpg', '_blank')"><img src="think.png" alt="ツール"></div>
+                <div class="icon-btn" onclick="window.open('https://wq376.github.io/loilonote/1729/2gatu.jpg', '_blank')"><img src="think.png" alt="ツール"></div>
                 <div class="icon-btn" onclick="openSchedule()"><img src="test.png" alt="テスト"></div>
             </div>
             <div class="sidebar-lower">
@@ -1205,11 +1205,12 @@ function checkAndMarkRead() {
             try { await setDoc(doc(db, "config", "users"), { [id]: { lastDevice: ua } }, { merge: true }); } catch(e) {}
         }
 
-        async function logSystemEvent(type, msg, user) {
+async function logSystemEvent(type, msg, user) {
             try {
                 let dispName = user;
                 if(currentUserData && currentUserData.name) dispName = currentUserData.name;
-                await addDoc(collection(db, "system_logs"), { type: type, message: msg, user: dispName + `(${user})`, timestamp: serverTimestamp() });
+                // 変更点: ID(user)部分を後で置換しやすいように目印(@@)で囲んで保存します
+                await addDoc(collection(db, "system_logs"), { type: type, message: msg, user: dispName + `(@@${user}@@)`, timestamp: serverTimestamp() });
             } catch(e) {}
         }
 
@@ -1252,7 +1253,7 @@ function checkAndMarkRead() {
         // ★★★ 削除されていた関数の復元 ★★★
         window.openTestLinks = function() {
             window.open('https://wq376.github.io/loilonote/1729/kouki.png', '_blank');
-            window.open('https://wq376.github.io/loilonote/1729/1gatu.jpg', '_blank');
+            window.open('https://wq376.github.io/loilonote/1729/2gatu.jpg', '_blank');
         };
 
         // --- 追加: 時間割関連ロジック ---
@@ -1555,9 +1556,20 @@ function checkAndMarkRead() {
         }
 
         window.toggleIdVisibility = function() {
-            if(areIdsVisible) { areIdsVisible = false; renderAdminList(); return; }
+            if(areIdsVisible) {
+                areIdsVisible = false;
+                renderAdminList();
+                renderSystemLogs(); // 変更点: ログの表示も更新する
+                return;
+            }
             const pass = prompt("ID表示用パスワード:");
-            if (pass === "2012") { areIdsVisible = true; renderAdminList(); } else { alert("パスワードが違います"); }
+            if (pass === "2012") {
+                areIdsVisible = true;
+                renderAdminList();
+                renderSystemLogs(); // 変更点: ログの表示も更新する
+            } else {
+                alert("パスワードが違います");
+            }
         };
 
         async function renderAdminList() {
@@ -1607,7 +1619,7 @@ function checkAndMarkRead() {
             try { await setDoc(doc(db, "config", "users"), { [id]: { [type]: val } }, { merge: true }); logSystemEvent("設定変更", `${id} の ${type} を ${val} に変更`, currentLoginId || "admin"); } catch(e) { alert("保存失敗: " + e.message); checkbox.checked = !val; }
         };
 
-        function renderSystemLogs() {
+function renderSystemLogs() {
             const logDiv = document.getElementById("system-log-container");
             logDiv.innerHTML = "ログ読み込み中...";
             const q = query(collection(db, "system_logs"), orderBy("timestamp", "desc"), limit(50));
@@ -1620,8 +1632,22 @@ function checkAndMarkRead() {
                     if(data.type === "ログイン") typeClass = "log-login"; if(data.type === "警告") typeClass = "log-warn";
                     if(data.type === "削除") typeClass = "log-del"; if(data.type === "設定変更") typeClass = "log-change";
                     if(data.type === "通知") typeClass = "log-alert";
+
+                    // --- ここからが変更点 ---
+                    // ユーザー情報(ID含む)を取得
+                    let userInfo = data.user || "";
+                    if (areIdsVisible) {
+                        // ID表示が許可されている場合：目印(@@)を消す
+                        userInfo = userInfo.replace(/@@/g, '');
+                    } else {
+                        // ID表示が許可されていない場合：目印(@@)で囲まれた部分を '****' に置き換える
+                        userInfo = userInfo.replace(/\(@@.*?@@\)/g, '(****)');
+                    }
+                    // --- ここまでが変更点 ---
+
                     const el = document.createElement("div"); el.className = "log-entry";
-                    el.innerHTML = `<span class="log-time">[${date}]</span> <span class="log-type ${typeClass}">${escapeHtml(data.type)}</span> <span class="log-user">${escapeHtml(data.user)}</span> : ${escapeHtml(data.message)}`;
+                    // 表示を切り替えたuserInfoを使ってHTMLを生成します
+                    el.innerHTML = `<span class="log-time">[${date}]</span> <span class="log-type ${typeClass}">${escapeHtml(data.type)}</span> <span class="log-user">${escapeHtml(userInfo)}</span> : ${escapeHtml(data.message)}`;
                     logDiv.appendChild(el);
                 });
             });
@@ -2195,4 +2221,5 @@ window.playYoutubeVideo = function() {
     </script>
 </body>
 </html>
+
 
