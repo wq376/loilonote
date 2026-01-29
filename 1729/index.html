@@ -1495,25 +1495,45 @@ async function logSystemEvent(type, msg, user) {
             }
         };
 
-        window.addNewUser = async function() {
-            if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
-            const newId = document.getElementById("new-user-id").value.trim();
-            const newName = document.getElementById("new-user-name").value.trim();
-            if(!newId || !newName) { alert("IDと名前を入力してください"); return; }
-            try {
-                const newUser = { name: newName, isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true, lastDevice: "" };
-                await setDoc(doc(db, "config", "users"), { [newId]: newUser }, { merge: true });
-                document.getElementById("new-user-id").value = ""; document.getElementById("new-user-name").value = "";
-                logSystemEvent("設定変更", `新規ユーザー追加: ${newName} (${newId})`, currentLoginId || "admin");
-            } catch(e) { alert("追加エラー: "+e.message); }
-        };
+window.addNewUser = async function() {
+    if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
+    const newId = document.getElementById("new-user-id").value.trim();
+    const newName = document.getElementById("new-user-name").value.trim();
+    if(!newId || !newName) { alert("IDと名前を入力してください"); return; }
+    try {
+        const newUser = { name: newName, isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true, lastDevice: "" };
+        await setDoc(doc(db, "config", "users"), { [newId]: newUser }, { merge: true });
+        document.getElementById("new-user-id").value = ""; document.getElementById("new-user-name").value = "";
+        // 変更点: ログメッセージから新規IDを削除
+        logSystemEvent("設定変更", `新規ユーザー追加: ${newName}`, currentLoginId || "admin");
+    } catch(e) { alert("追加エラー: "+e.message); }
+};
 
-        window.deleteUser = async function(id) {
-            if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
-            if (id === SUPER_ADMIN_ID) { alert("このユーザーは削除できません"); return; }
-            if(!confirm(`ユーザー ${id} を完全に削除しますか？`)) return;
-            try { await updateDoc(doc(db, "config", "users"), { [id]: deleteField() }); logSystemEvent("設定変更", `ユーザー削除: ${id}`, currentLoginId || "admin"); } catch(e) { alert("削除エラー: "+e.message); }
-        };
+window.deleteUser = async function(id) {
+    if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
+    if (id === SUPER_ADMIN_ID) { alert("このユーザーは削除できません"); return; }
+    
+    // 変更点: 削除前にユーザー名を取得する
+    let userNameToDelete = id; // デフォルトはID
+    try {
+        const usersDocRef = doc(db, "config", "users");
+        const usersDocSnap = await getDoc(usersDocRef);
+        if (usersDocSnap.exists()) {
+            userNameToDelete = usersDocSnap.data()[id]?.name || id;
+        }
+    } catch (e) {
+        console.error("ユーザー名の取得に失敗", e);
+    }
+
+    if(!confirm(`ユーザー「${userNameToDelete}」を完全に削除しますか？`)) return;
+
+    try {
+        const usersDocRef = doc(db, "config", "users");
+        await updateDoc(usersDocRef, { [id]: deleteField() });
+        // 変更点: ログに名前を使用
+        logSystemEvent("設定変更", `ユーザー「${userNameToDelete}」を削除`, currentLoginId || "admin");
+    } catch(e) { alert("削除エラー: "+e.message); }
+};
         
         window.editUserName = async function(id, currentName) {
             if (id === SUPER_ADMIN_ID && currentAdminSessionType !== 'super') { alert("変更できません"); return; }
@@ -1527,11 +1547,17 @@ async function logSystemEvent(type, msg, user) {
             try { await setDoc(doc(db, "config", "users"), { [id]: { needReload: true } }, { merge: true }); alert("再読み込みコマンドを送信しました。"); } catch(e) { alert("送信失敗: "+e.message); }
         };
 
-        window.sendUserAlert = async function(id) {
-            const msg = prompt("このユーザーへの通知メッセージを入力:");
-            if(!msg) return;
-            try { await setDoc(doc(db, "config", "users"), { [id]: { alertMessage: msg } }, { merge: true }); alert("送信しました"); logSystemEvent("通知", `通知送信: ${id} -> ${msg}`, currentLoginId || "admin"); } catch(e) { alert("送信失敗: " + e.message); }
-        }
+// 変更点: 第2引数に name を追加
+window.sendUserAlert = async function(id, name) {
+    const msg = prompt(`ユーザー「${name}」への通知メッセージを入力:`);
+    if(!msg) return;
+    try {
+        await setDoc(doc(db, "config", "users"), { [id]: { alertMessage: msg } }, { merge: true });
+        alert("送信しました");
+        // 変更点: ログに名前を使用
+        logSystemEvent("通知", `通知送信:「${name}」へ -> ${msg}`, currentLoginId || "admin");
+    } catch(e) { alert("送信失敗: " + e.message); }
+}
         
         window.addFilterWord = async function() {
             const input = document.getElementById('new-filter-word');
@@ -1603,52 +1629,62 @@ window.toggleIdVisibility = function() {
     }
 };
 
-        async function renderAdminList() {
-            const listDiv = document.getElementById("admin-user-list"); 
-            listDiv.innerHTML = "読み込み中...";
-            onSnapshot(doc(db, "config", "users"), (docSnap) => {
-                listDiv.innerHTML = "";
-                const allUsers = docSnap.exists() ? docSnap.data() : {};
-                const sortedIds = Object.keys(allUsers).sort();
-                for (let id of sortedIds) {
-                    const u = allUsers[id];
-                    if (typeof u === 'boolean') { continue; }
-                    const perm = { isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, canChat: true, canImage: true, ...u };
-                    const isTargetProtected = (id === SUPER_ADMIN_ID || id === "admin");
-                    const canEditProtected = (currentAdminSessionType === 'super');
-                    const disabledAttr = (isTargetProtected && !canEditProtected) ? "disabled" : "";
-                    const opacityStyle = (isTargetProtected && !canEditProtected) ? "opacity:0.5; cursor:not-allowed;" : "";
-                    const clickAction = (isTargetProtected && !canEditProtected) ? `onclick="alert('変更できません。'); return false;"` : "";
-                    const displayId = areIdsVisible ? id : "****";
-                    let actionBtns = "";
-                    actionBtns += `<span class="alert-icon" onclick="sendUserAlert('${id}')" title="通知を送る">🔔</span> `;
-                    if (currentAdminSessionType === 'super') {
-                         actionBtns += `<span class="refresh-icon" onclick="forceReloadUser('${id}')" title="強制リロード">🔄</span> `;
-                         if(!isTargetProtected) { actionBtns += `<span class="delete-icon" onclick="deleteUser('${id}')" title="削除">🗑️</span>`; }
-                    }
-                    const row = document.createElement("div"); row.className = "user-control-row";
-                    row.innerHTML = `
-                        <div class="user-info-row"><div class="user-info-admin">${escapeHtml(perm.name)} (${displayId}) <span class="edit-icon" onclick="editUserName('${id}', '${escapeHtml(perm.name)}')">✏️</span>${actionBtns}<br><span class="device-info">端末: ${perm.lastDevice || "不明"}</span></div></div>
-                        <div class="user-settings-row">
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ログイン</span><label class="toggle-switch"><input type="checkbox" ${perm.isAllowed ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'isAllowed', this)"><span class="slider"></span></label></div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">管理者</span><label class="toggle-switch"><input type="checkbox" ${perm.isAdmin ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'isAdmin', this)"><span class="slider"></span></label></div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">チャット</span><label class="toggle-switch"><input type="checkbox" ${perm.canChat ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canChat', this)"><span class="slider"></span></label></div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">画像</span><label class="toggle-switch"><input type="checkbox" ${perm.canImage ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canImage', this)"><span class="slider"></span></label></div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">名前変更</span><label class="toggle-switch"><input type="checkbox" ${perm.canChangeName ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canChangeName', this)"><span class="slider"></span></label></div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ニックネーム</span><label class="toggle-switch"><input type="checkbox" ${perm.showNickname ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'showNickname', this)"><span class="slider"></span></label></div>
-                            <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">送信取消</span><label class="toggle-switch"><input type="checkbox" ${perm.canUnsend ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', 'canUnsend', this)"><span class="slider"></span></label></div>
-                        </div>
-                    `;
-                    listDiv.appendChild(row);
-                }
-            });
-        }
+async function renderAdminList() {
+    const listDiv = document.getElementById("admin-user-list"); 
+    listDiv.innerHTML = "読み込み中...";
+    onSnapshot(doc(db, "config", "users"), (docSnap) => {
+        listDiv.innerHTML = "";
+        const allUsers = docSnap.exists() ? docSnap.data() : {};
+        const sortedIds = Object.keys(allUsers).sort();
+        for (let id of sortedIds) {
+            const u = allUsers[id];
+            if (typeof u === 'boolean') { continue; }
+            const perm = { isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, canChat: true, canImage: true, ...u };
+            const isTargetProtected = (id === SUPER_ADMIN_ID || id === "admin");
+            const canEditProtected = (currentAdminSessionType === 'super');
+            const disabledAttr = (isTargetProtected && !canEditProtected) ? "disabled" : "";
+            const opacityStyle = (isTargetProtected && !canEditProtected) ? "opacity:0.5; cursor:not-allowed;" : "";
+            const clickAction = (isTargetProtected && !canEditProtected) ? `onclick="alert('変更できません。'); return false;"` : "";
+            const displayId = areIdsVisible ? id : "****";
+            
+            // 変更点: 通知(alert)ボタンに名前を渡すように修正
+            let actionBtns = "";
+            actionBtns += `<span class="alert-icon" onclick="sendUserAlert('${id}', '${escapeHtml(perm.name)}')" title="通知を送る">🔔</span> `;
+            if (currentAdminSessionType === 'super') {
+                 actionBtns += `<span class="refresh-icon" onclick="forceReloadUser('${id}')" title="強制リロード">🔄</span> `;
+                 if(!isTargetProtected) { actionBtns += `<span class="delete-icon" onclick="deleteUser('${id}')" title="削除">🗑️</span>`; }
+            }
+            
+            const row = document.createElement("div"); row.className = "user-control-row";
 
-        window.togglePerm = async function(id, type, checkbox) {
-            const val = checkbox.checked;
-            if ((id === SUPER_ADMIN_ID || id === "admin") && currentAdminSessionType !== 'super') { checkbox.checked = !val; return; }
-            try { await setDoc(doc(db, "config", "users"), { [id]: { [type]: val } }, { merge: true }); logSystemEvent("設定変更", `${id} の ${type} を ${val} に変更`, currentLoginId || "admin"); } catch(e) { alert("保存失敗: " + e.message); checkbox.checked = !val; }
-        };
+            // 変更点: onchangeで呼び出す togglePerm に、第2引数として名前(perm.name)を追加
+            row.innerHTML = `
+                <div class="user-info-row"><div class="user-info-admin">${escapeHtml(perm.name)} (${displayId}) <span class="edit-icon" onclick="editUserName('${id}', '${escapeHtml(perm.name)}')">✏️</span>${actionBtns}<br><span class="device-info">端末: ${perm.lastDevice || "不明"}</span></div></div>
+                <div class="user-settings-row">
+                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ログイン</span><label class="toggle-switch"><input type="checkbox" ${perm.isAllowed ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'isAllowed', this)"><span class="slider"></span></label></div>
+                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">管理者</span><label class="toggle-switch"><input type="checkbox" ${perm.isAdmin ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'isAdmin', this)"><span class="slider"></span></label></div>
+                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">チャット</span><label class="toggle-switch"><input type="checkbox" ${perm.canChat ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canChat', this)"><span class="slider"></span></label></div>
+                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">画像</span><label class="toggle-switch"><input type="checkbox" ${perm.canImage ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canImage', this)"><span class="slider"></span></label></div>
+                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">名前変更</span><label class="toggle-switch"><input type="checkbox" ${perm.canChangeName ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canChangeName', this)"><span class="slider"></span></label></div>
+                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ニックネーム</span><label class="toggle-switch"><input type="checkbox" ${perm.showNickname ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'showNickname', this)"><span class="slider"></span></label></div>
+                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">送信取消</span><label class="toggle-switch"><input type="checkbox" ${perm.canUnsend ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canUnsend', this)"><span class="slider"></span></label></div>
+                </div>
+            `;
+            listDiv.appendChild(row);
+        }
+    });
+}
+
+// 変更点: 第2引数に name を追加
+window.togglePerm = async function(id, name, type, checkbox) {
+    const val = checkbox.checked;
+    if ((id === SUPER_ADMIN_ID || id === "admin") && currentAdminSessionType !== 'super') { checkbox.checked = !val; return; }
+    try {
+        await setDoc(doc(db, "config", "users"), { [id]: { [type]: val } }, { merge: true });
+        // 変更点: ログメッセージでIDの代わりに名前を使用
+        logSystemEvent("設定変更", `「${name}」の ${type} を ${val} に変更`, currentLoginId || "admin");
+    } catch(e) { alert("保存失敗: " + e.message); checkbox.checked = !val; }
+};
 
 function renderSystemLogs() {
             const logDiv = document.getElementById("system-log-container");
