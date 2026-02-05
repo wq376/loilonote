@@ -989,26 +989,54 @@ let currentChatDocs = null; // チャットデータを保存しておく変数
         const replyTargetText = document.getElementById("reply-target-text");
         const PHP_IMAGE_API = "https://cf890473.cloudfree.jp/api.php";
 
+        // 【新規追加】ランダムな管理コード(英小文字1文字 + 数字6桁)を生成する関数
+function generateAdminCode() {
+    const letters = "abcdefghijklmnopqrstuvwxyz";
+    const char = letters.charAt(Math.floor(Math.random() * letters.length));
+    const num = Math.floor(100000 + Math.random() * 900000); // 100000〜999999
+    return char + num; // 例: k829104
+}
+
 async function initDB() {
-            try {
-                // ユーザー初期化
-                const docRef = doc(db, "config", "users");
-                const docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) { await setDoc(docRef, INITIAL_USERS); }
-
-                // フィルター初期化
-                const filterRef = doc(db, "config", "filters");
-                const filterSnap = await getDoc(filterRef);
-                if (!filterSnap.exists()) { await setDoc(filterRef, { words: ["死ね", "殺す", "バカ", "アホ", "うざい"] }); }
-
-                // --- ↓↓↓ ここを追加：お知らせの初期化 ↓↓↓ ---
-                const updateRef = doc(db, "config", "updates");
-                const updateSnap = await getDoc(updateRef);
-                if (!updateSnap.exists()) { await setDoc(updateRef, { list: [] }); }
-                // --- ↑↑↑ ここまで ↑↑↑ ---
-
-            } catch(e) { console.error("DB初期化エラー", e); }
+    try {
+        // ユーザー初期化
+        const docRef = doc(db, "config", "users");
+        const docSnap = await getDoc(docRef);
+        
+        if (!docSnap.exists()) {
+            // 初回作成時：全員にコードを生成して保存
+            const usersWithCode = {};
+            for (const [uid, uData] of Object.entries(INITIAL_USERS)) {
+                usersWithCode[uid] = { ...uData, adminCode: generateAdminCode() };
+            }
+            await setDoc(docRef, usersWithCode);
+        } else {
+            // 既存データがある場合：コードを持っていないユーザーに後付けで付与
+            const users = docSnap.data();
+            let needsUpdate = false;
+            for (const [uid, uData] of Object.entries(users)) {
+                if (!uData.adminCode) {
+                    uData.adminCode = generateAdminCode();
+                    needsUpdate = true;
+                }
+            }
+            if (needsUpdate) {
+                await setDoc(docRef, users, { merge: true });
+            }
         }
+
+        // フィルター初期化
+        const filterRef = doc(db, "config", "filters");
+        const filterSnap = await getDoc(filterRef);
+        if (!filterSnap.exists()) { await setDoc(filterRef, { words: ["死ね", "殺す", "バカ", "アホ", "うざい"] }); }
+
+        // お知らせ初期化
+        const updateRef = doc(db, "config", "updates");
+        const updateSnap = await getDoc(updateRef);
+        if (!updateSnap.exists()) { await setDoc(updateRef, { list: [] }); }
+
+    } catch(e) { console.error("DB初期化エラー", e); }
+}
         initDB();
 
 /* --- ヘルパー関数の追加 --- */
@@ -1207,14 +1235,40 @@ function checkAndMarkRead() {
             try { await setDoc(doc(db, "config", "users"), { [id]: { lastDevice: ua } }, { merge: true }); } catch(e) {}
         }
 
-async function logSystemEvent(type, msg, user) {
-            try {
-                let dispName = user;
-                if(currentUserData && currentUserData.name) dispName = currentUserData.name;
-                // 変更点: ID(user)部分を後で置換しやすいように目印(@@)で囲んで保存します
-                await addDoc(collection(db, "system_logs"), { type: type, message: msg, user: dispName + `(@@${user}@@)`, timestamp: serverTimestamp() });
-            } catch(e) {}
+async function logSystemEvent(type, msg, userId) {
+    try {
+        let displayStr = "不明なユーザー";
+
+        // 特権管理者やシステムの場合
+        if (userId === "SUPER_ADMIN" || userId === "admin" || userId === "SystemAdmin") {
+            displayStr = "管理者 (System)";
+        } else {
+            // DBから最新のユーザー情報を取得して、管理コードを探す
+            const userRef = doc(db, "config", "users");
+            const snap = await getDoc(userRef);
+            if (snap.exists()) {
+                const userData = snap.data()[userId];
+                if (userData) {
+                    const name = userData.name || "名称未設定";
+                    // ここで管理コードを使用 (なければ生成して表示)
+                    const code = userData.adminCode || "NoCode";
+                    // ログに保存される文字列: "田中大樹 (Code: k123456)"
+                    displayStr = `${name} (Code: ${code})`;
+                } else {
+                    displayStr = `削除済ユーザー (ID隠蔽)`;
+                }
+            }
         }
+
+        // IDを含まない安全な文字列(displayStr)をログに保存
+        await addDoc(collection(db, "system_logs"), { 
+            type: type, 
+            message: msg, 
+            user: displayStr, 
+            timestamp: serverTimestamp() 
+        });
+    } catch(e) { console.error("ログ保存エラー", e); }
+}
 
         const currentNameSpan = document.getElementById("current-name");
         const nameRefs = document.querySelectorAll(".display-name-ref");
@@ -1501,11 +1555,23 @@ window.addNewUser = async function() {
     const newName = document.getElementById("new-user-name").value.trim();
     if(!newId || !newName) { alert("IDと名前を入力してください"); return; }
     try {
-        const newUser = { name: newName, isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true, lastDevice: "" };
+        // ここで generateAdminCode() を呼ぶ
+        const newCode = generateAdminCode();
+        
+        const newUser = { 
+            name: newName, 
+            adminCode: newCode, // 管理コード保存
+            isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, 
+            canUnsend: true, needReload: false, canChat: true, canImage: true, lastDevice: "" 
+        };
         await setDoc(doc(db, "config", "users"), { [newId]: newUser }, { merge: true });
-        document.getElementById("new-user-id").value = ""; document.getElementById("new-user-name").value = "";
-        // 変更点: ログメッセージから新規IDを削除
+        
+        document.getElementById("new-user-id").value = ""; 
+        document.getElementById("new-user-name").value = "";
+        
+        // ログ送信 (IDは渡すが、logSystemEvent内でコードに変換される)
         logSystemEvent("設定変更", `新規ユーザー追加: ${newName}`, currentLoginId || "admin");
+        alert(`ユーザーを追加しました。\n管理コード: ${newCode}`);
     } catch(e) { alert("追加エラー: "+e.message); }
 };
 
@@ -1687,38 +1753,29 @@ window.togglePerm = async function(id, name, type, checkbox) {
 };
 
 function renderSystemLogs() {
-            const logDiv = document.getElementById("system-log-container");
-            logDiv.innerHTML = "ログ読み込み中...";
-            const q = query(collection(db, "system_logs"), orderBy("timestamp", "desc"), limit(50));
-            onSnapshot(q, (snap) => {
-                logDiv.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const date = data.timestamp ? data.timestamp.toDate().toLocaleString() : "---";
-                    let typeClass = "log-info";
-                    if(data.type === "ログイン") typeClass = "log-login"; if(data.type === "警告") typeClass = "log-warn";
-                    if(data.type === "削除") typeClass = "log-del"; if(data.type === "設定変更") typeClass = "log-change";
-                    if(data.type === "通知") typeClass = "log-alert";
+    const logDiv = document.getElementById("system-log-container");
+    logDiv.innerHTML = "ログ読み込み中...";
+    const q = query(collection(db, "system_logs"), orderBy("timestamp", "desc"), limit(50));
+    
+    onSnapshot(q, (snap) => {
+        logDiv.innerHTML = "";
+        snap.forEach(d => {
+            const data = d.data();
+            const date = data.timestamp ? data.timestamp.toDate().toLocaleString() : "---";
+            let typeClass = "log-info";
+            if(data.type === "ログイン") typeClass = "log-login"; if(data.type === "警告") typeClass = "log-warn";
+            if(data.type === "削除") typeClass = "log-del"; if(data.type === "設定変更") typeClass = "log-change";
+            if(data.type === "通知") typeClass = "log-alert";
 
-                    // --- ここからが変更点 ---
-                    // ユーザー情報(ID含む)を取得
-                    let userInfo = data.user || "";
-                    if (areIdsVisible) {
-                        // ID表示が許可されている場合：目印(@@)を消す
-                        userInfo = userInfo.replace(/@@/g, '');
-                    } else {
-                        // ID表示が許可されていない場合：目印(@@)で囲まれた部分を '****' に置き換える
-                        userInfo = userInfo.replace(/\(@@.*?@@\)/g, '(****)');
-                    }
-                    // --- ここまでが変更点 ---
+            // 保存されているデータが既に「名前 (Code: a123456)」になっているのでそのまま表示
+            const userInfo = data.user || "---";
 
-                    const el = document.createElement("div"); el.className = "log-entry";
-                    // 表示を切り替えたuserInfoを使ってHTMLを生成します
-                    el.innerHTML = `<span class="log-time">[${date}]</span> <span class="log-type ${typeClass}">${escapeHtml(data.type)}</span> <span class="log-user">${escapeHtml(userInfo)}</span> : ${escapeHtml(data.message)}`;
-                    logDiv.appendChild(el);
-                });
-            });
-        }
+            const el = document.createElement("div"); el.className = "log-entry";
+            el.innerHTML = `<span class="log-time">[${date}]</span> <span class="log-type ${typeClass}">${escapeHtml(data.type)}</span> <span class="log-user">${escapeHtml(userInfo)}</span> : ${escapeHtml(data.message)}`;
+            logDiv.appendChild(el);
+        });
+    });
+}
 
         function renderAdminChatList() {
             const chatDiv = document.getElementById("admin-chat-list-container");
