@@ -1058,6 +1058,25 @@ async function initDB() {
 }
         initDB();
 
+// ★追加: サーバー設定の全体同期（管理者による強制切り替え）
+        onSnapshot(doc(db, "config", "server_settings"), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                const globalMode = data.chatMode; // 'firebase' or 'symfree'
+                const currentLocalMode = localStorage.getItem('loilo_chat_mode');
+
+                // 設定が変更されていたら、強制的に書き換えてリロード
+                if (globalMode && globalMode !== currentLocalMode) {
+                    alert("【管理者通知】\nチャットサーバーの接続先が変更されました。\n新しい設定を反映するために再読み込みします。");
+                    localStorage.setItem('loilo_chat_mode', globalMode);
+                    location.reload();
+                }
+                
+                // 変数も更新しておく
+                chatServerMode = globalMode;
+            }
+        });
+
 /* --- ヘルパー関数の追加 --- */
 function getMyDisplayName() {
     if (!currentUserData) return "Unknown";
@@ -1589,16 +1608,38 @@ window.closeAdminPanel = function() {
                 loadAdminStatusSettings();
             }
         };
-window.changeChatMode = function(mode) {
-    if(mode === chatServerMode) return;
-    if(!confirm(`チャットの保存先を「${mode === 'firebase' ? 'Firebase' : 'シンフリーサーバー'}」に切り替えますか？\nページがリロードされます。`)) {
-        const radios = document.getElementsByName('chat_mode_select');
-        for(let r of radios) { if(r.value === chatServerMode) r.checked = true; }
-        return;
-    }
-    localStorage.setItem('loilo_chat_mode', mode);
-    location.reload();
-};
+// ★修正: サーバー切り替え（全員に適用）
+        window.changeChatMode = async function(mode) {
+            // 現在のモードと同じなら何もしない
+            if(mode === chatServerMode) return;
+
+            if(!confirm(`【重要】\n全ユーザーのチャット接続先を「${mode === 'firebase' ? 'Firebase' : 'シンフリーサーバー'}」に変更します。\n\n・全員の画面が自動的にリロードされます。\n・実行しますか？`)) {
+                // キャンセル時はラジオボタンの表示を元に戻す（見た目だけ）
+                const radios = document.getElementsByName('chat_mode_select');
+                for(let r of radios) { 
+                    if(r.value === chatServerMode) r.checked = true; 
+                }
+                return;
+            }
+
+            try {
+                // データベースの設定を書き換える（→ 手順1のコードが反応して全員切り替わる）
+                await setDoc(doc(db, "config", "server_settings"), { 
+                    chatMode: mode,
+                    updatedAt: serverTimestamp(),
+                    updatedBy: currentLoginId || "admin"
+                }, { merge: true });
+                
+                alert("設定を変更しました。\n数秒後に全員の画面が切り替わります。");
+            } catch(e) {
+                alert("設定の保存に失敗しました: " + e.message);
+                // 失敗したらラジオボタンを戻す
+                const radios = document.getElementsByName('chat_mode_select');
+                for(let r of radios) { 
+                    if(r.value === chatServerMode) r.checked = true; 
+                }
+            }
+        };
 
 window.addNewUser = async function() {
     if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
