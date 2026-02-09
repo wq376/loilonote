@@ -2130,31 +2130,51 @@ function startChatSync() {
     } else {
         if(symfreePollingInterval) clearInterval(symfreePollingInterval);
         fetchSymfreeMessages();
-        symfreePollingInterval = setInterval(fetchSymfreeMessages, 3000);
+        symfreePollingInterval = setInterval(fetchSymfreeMessages, 2000);
     }
 }
 
-// PHPサーバーから取得する関数
+// PHPサーバーから取得する関数 (改良版)
 async function fetchSymfreeMessages() {
     try {
         const formData = new FormData();
         formData.append('cmd', 'get_chat');
-        const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+        // キャッシュ回避のためのタイムスタンプを追加
+        const res = await fetch(PHP_IMAGE_API + '?t=' + new Date().getTime(), { method: 'POST', body: formData });
+        
+        if (!res.ok) return; // 通信エラー時は無視
+
         const json = await res.json();
         if (json.status === 'ok' && Array.isArray(json.data)) {
-            const list = json.data.map(item => ({
-                id: item.id,
-                text: item.text,
-                imageUrl: item.image_url,
-                name: item.name,
-                uid: item.uid,
-                replyTo: item.reply_to,
-                createdAt: new Date(item.created_at),
-                readBy: []
-            }));
+            const list = [];
+            json.data.forEach(item => {
+                // 日付データの安全な変換
+                let d = new Date();
+                try {
+                    if(item.created_at) {
+                        d = new Date(item.created_at);
+                        // 無効な日付なら現在時刻にする
+                        if(isNaN(d.getTime())) d = new Date();
+                    }
+                } catch(e) { d = new Date(); }
+
+                list.push({
+                    id: item.id,
+                    text: item.text,
+                    imageUrl: item.image_url,
+                    name: item.name,
+                    uid: item.uid,
+                    replyTo: item.reply_to,
+                    createdAt: d,
+                    readBy: []
+                });
+            });
             renderChatMessages(list);
         }
-    } catch(e) { console.error("PHP fetch error", e); }
+    } catch(e) { 
+        // エラーが出てもコンソールに出すだけで、処理を止めない
+        console.warn("PHP fetch warning:", e); 
+    }
 }
 
 startChatSync(); // 実行
