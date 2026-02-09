@@ -546,11 +546,28 @@
                         <textarea id="admin-schedule-memo" class="memo-area" placeholder="生徒画面に表示する備考を入力"></textarea>
                     </div>
                 </div>
-                <div id="tab-content-server" class="admin-tab-content">
-                    <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #f0f8ff;">
-                        <h4>現在の接続先: <span id="current-server-label" style="font-weight:bold; color:#007aff;">デフォルト</span></h4>
-                        <p style="font-size:0.8rem; color:#666;">※切り替えるとページが再読み込みされます。</p>
-                    </div>
+<!-- 既存のコード: id="tab-content-server" の中 -->
+<div id="tab-content-server" class="admin-tab-content">
+    <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #f0f8ff;">
+        <h4>現在の接続先: <span id="current-server-label" style="font-weight:bold; color:#007aff;">デフォルト</span></h4>
+        <p style="font-size:0.8rem; color:#666;">※切り替えるとページが再読み込みされます。</p>
+    </div>
+
+    <!-- ★追加: ここからチャットサーバー切替スイッチ -->
+    <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #fff0f5;">
+        <h4>チャット(提出箱) 保存サーバー設定</h4>
+        <div style="margin-top:10px; display:flex; gap:20px; align-items:center;">
+            <label style="cursor:pointer; font-weight:bold;">
+                <input type="radio" name="chat_mode_select" value="firebase" onclick="changeChatMode('firebase')"> Firebase (高速・リアルタイム)
+            </label>
+            <label style="cursor:pointer; font-weight:bold;">
+                <input type="radio" name="chat_mode_select" value="symfree" onclick="changeChatMode('symfree')"> シンフリー (PHPサーバー)
+            </label>
+        </div>
+        <p style="font-size:0.8rem; color:#666; margin-top:5px;">※ 現在の設定: <span id="current-chat-mode-disp" style="font-weight:bold;">読み込み中...</span></p>
+    </div>
+    <!-- ★ここまで追加 -->
+
                     <div style="padding: 15px; border-bottom: 1px solid #ddd;">
                         <strong>新規サーバー追加</strong><br>
                         <input type="text" id="server-label-input" class="admin-input" placeholder="表示名 (例: 2組用サーバー)" style="width: 100%; margin-top:5px; margin-bottom:5px;">
@@ -988,6 +1005,8 @@ let currentChatDocs = null; // チャットデータを保存しておく変数
         const replyStatusBar = document.getElementById("reply-status-bar");
         const replyTargetText = document.getElementById("reply-target-text");
         const PHP_IMAGE_API = "https://cf890473.cloudfree.jp/api.php";
+        let chatServerMode = localStorage.getItem('loilo_chat_mode') || 'firebase'; 
+        let symfreePollingInterval = null;
 
         // 【新規追加】ランダムな管理コード(英小文字1文字 + 数字6桁)を生成する関数
 function generateAdminCode() {
@@ -1499,7 +1518,12 @@ async function logSystemEvent(type, msg, userId) {
             document.getElementById("admin-login-error").innerText = "パスワードが違います";
         }
         
-        window.closeAdminPanel = function() { 
+window.closeAdminPanel = function() { 
+            // シンフリー管理用のタイマーがあれば停止
+            if(typeof adminChatInterval !== 'undefined' && adminChatInterval) {
+                clearInterval(adminChatInterval);
+            }
+            
             viewAdminPanel.style.display = "none"; 
             document.getElementById("admin-pass-input").value = "";
             currentAdminSessionType = 'none';
@@ -1522,11 +1546,28 @@ async function logSystemEvent(type, msg, userId) {
             } else if(tabName === 'schedule') {
                 document.querySelector('.admin-tab:nth-child(4)').classList.add('active');
                 document.getElementById('tab-content-schedule').classList.add('active');
-            } else if(tabName === 'server') {
-                document.querySelector('.admin-tab:nth-child(5)').classList.add('active');
-                document.getElementById('tab-content-server').classList.add('active');
-                renderServerList();
-            } 
+    } else if(tabName === 'server') {
+        document.querySelector('.admin-tab:nth-child(5)').classList.add('active');
+        document.getElementById('tab-content-server').classList.add('active');
+        renderServerList();
+        
+        // ★追加: 現在のモードを表示
+        const currentDisp = document.getElementById('current-chat-mode-disp');
+        const radios = document.getElementsByName('chat_mode_select');
+        if(chatServerMode === 'firebase') {
+            if(currentDisp) {
+                currentDisp.textContent = "Firebase (デフォルト)";
+                currentDisp.style.color = "#FF9800";
+            }
+            if(radios.length > 0) radios[0].checked = true;
+        } else {
+            if(currentDisp) {
+                currentDisp.textContent = "シンフリーサーバー (PHP)";
+                currentDisp.style.color = "#0099ff";
+            }
+            if(radios.length > 0) radios[1].checked = true;
+        }
+    }
             // 既存の関数内に追加
         // ... 他のelse ifの後 ...
         else if(tabName === 'update') {
@@ -1548,6 +1589,16 @@ async function logSystemEvent(type, msg, userId) {
                 loadAdminStatusSettings();
             }
         };
+window.changeChatMode = function(mode) {
+    if(mode === chatServerMode) return;
+    if(!confirm(`チャットの保存先を「${mode === 'firebase' ? 'Firebase' : 'シンフリーサーバー'}」に切り替えますか？\nページがリロードされます。`)) {
+        const radios = document.getElementsByName('chat_mode_select');
+        for(let r of radios) { if(r.value === chatServerMode) r.checked = true; }
+        return;
+    }
+    localStorage.setItem('loilo_chat_mode', mode);
+    location.reload();
+};
 
 window.addNewUser = async function() {
     if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
@@ -1777,25 +1828,105 @@ function renderSystemLogs() {
     });
 }
 
-        function renderAdminChatList() {
+// ★修正: 管理者画面のチャットリスト描画（シンフリー対応版）
+        let adminChatInterval = null; // 管理画面用のポーリングタイマー
+
+        window.renderAdminChatList = function() {
             const chatDiv = document.getElementById("admin-chat-list-container");
-            const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "desc"));
-            onSnapshot(q, (snap) => {
-                chatDiv.innerHTML = "";
-                if (snap.empty) { chatDiv.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>履歴なし</div>"; return; }
-                snap.forEach((doc) => {
-                    const data = doc.data();
-                    const date = data.createdAt ? data.createdAt.toDate().toLocaleString() : "---";
-                    const content = data.text || (data.imageUrl ? "[画像]" : "[不明]");
-                    const el = document.createElement("div"); el.className = "admin-chat-item";
-                    el.innerHTML = `<div style="flex:1;"><div class="ac-info">${date} - ${escapeHtml(data.name)}</div><div class="ac-content">${escapeHtml(content)}</div></div><button class="ac-delete-btn" onclick="deleteChatMessage('${doc.id}')">削除</button>`;
-                    chatDiv.appendChild(el);
+            chatDiv.innerHTML = "<div style='text-align:center; padding:10px; color:#888;'>読み込み中...</div>";
+
+            // タイマーが残っていたらリセット
+            if(adminChatInterval) clearInterval(adminChatInterval);
+
+            if (chatServerMode === 'firebase') {
+                // --- Firebaseモード (既存の処理) ---
+                const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "desc"));
+                onSnapshot(q, (snap) => {
+                    chatDiv.innerHTML = "";
+                    if (snap.empty) { chatDiv.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>履歴なし</div>"; return; }
+                    snap.forEach((doc) => {
+                        const data = doc.data();
+                        const date = data.createdAt ? data.createdAt.toDate().toLocaleString() : "---";
+                        const content = data.text || (data.imageUrl ? "[画像]" : "[不明]");
+                        const el = document.createElement("div"); el.className = "admin-chat-item";
+                        // IDを表示させるために doc.id を利用
+                        el.innerHTML = `<div style="flex:1;"><div class="ac-info">${date} - ${escapeHtml(data.name)} (ID:${doc.id})</div><div class="ac-content">${escapeHtml(content)}</div></div><button class="ac-delete-btn" onclick="deleteChatMessage('${doc.id}')">削除</button>`;
+                        chatDiv.appendChild(el);
+                    });
                 });
-            });
+
+            } else {
+                // --- シンフリー(PHP)モード (新規追加) ---
+                // 3秒ごとに更新
+                fetchAdminSymfree();
+                adminChatInterval = setInterval(fetchAdminSymfree, 3000);
+            }
+        };
+
+        // シンフリーのデータを取得して表示する関数
+        async function fetchAdminSymfree() {
+            const chatDiv = document.getElementById("admin-chat-list-container");
+            try {
+                const formData = new FormData();
+                formData.append('cmd', 'get_chat');
+                const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+                const json = await res.json();
+
+                if (json.status === 'ok' && Array.isArray(json.data)) {
+                    chatDiv.innerHTML = "";
+                    const list = json.data;
+                    if (list.length === 0) {
+                        chatDiv.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>履歴なし</div>";
+                        return;
+                    }
+
+                    // 新しい順に並び替え
+                    list.reverse();
+
+                    list.forEach(item => {
+                        const d = new Date(item.created_at);
+                        const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                        const content = item.text || (item.image_url ? `[画像] ${item.image_url}` : "[不明]");
+                        
+                        const el = document.createElement("div"); 
+                        el.className = "admin-chat-item";
+                        // 削除ボタンはPHP用のIDを渡す
+                        el.innerHTML = `<div style="flex:1;"><div class="ac-info">${dateStr} - ${escapeHtml(item.name)} (ID:${item.id})</div><div class="ac-content">${escapeHtml(content)}</div></div><button class="ac-delete-btn" onclick="deleteChatMessage('${item.id}')">削除</button>`;
+                        chatDiv.appendChild(el);
+                    });
+                }
+            } catch(e) {
+                console.error("Admin fetch error:", e);
+                // エラー時は更新しない（チラつき防止）
+            }
         }
+
+        // ★修正: 管理者用削除関数（シンフリー対応版）
         window.deleteChatMessage = async function(docId) {
-            if(!confirm("削除しますか？")) return;
-            try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("削除失敗: " + e.message); }
+            if(!confirm("このメッセージを強制削除しますか？\n(復元できません)")) return;
+
+            if (chatServerMode === 'firebase') {
+                // Firebase削除
+                try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("削除失敗: " + e.message); }
+            } else {
+                // シンフリー(PHP)削除
+                const formData = new FormData();
+                formData.append('cmd', 'delete_chat');
+                formData.append('id', docId);
+                formData.append('force', 'true'); // ★強制削除フラグをつける
+
+                try { 
+                    const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+                    const json = await res.json();
+                    if(json.status === 'ok') {
+                        // 成功したらリストを即時更新
+                        fetchAdminSymfree();
+                        alert("削除しました");
+                    } else {
+                        alert("削除失敗: " + json.message);
+                    }
+                } catch(e) { alert("通信エラー: " + e.message); }
+            }
         };
 
 // ×ボタンと背景クリックのバグを修正した最終版です
@@ -1887,45 +2018,53 @@ async function sendPayload(text="", file=null) {
     let senderName = currentUserData ? currentUserData.name : "Unknown";
     if (currentUserData && currentUserData.showNickname && myName) { senderName = `${myName}・${currentUserData.name}`; }
     
-    // 3. Firebaseには、画像の「URL」だけを保存する
-    const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
-    if(replyTargetId) payload.replyTo = replyTargetId;
+// ★ここを書き換え
+    if (chatServerMode === 'firebase') {
+        const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
+        if(replyTargetId) payload.replyTo = replyTargetId;
+        await addDoc(collection(db, "fake_loilo_v2"), payload);
+    } else {
+        // シンフリー(PHP)へ送信
+        const formData = new FormData();
+        formData.append('cmd', 'save_chat');
+        formData.append('text', safeText);
+        if(imageUrl) formData.append('image_url', imageUrl);
+        formData.append('name', senderName);
+        formData.append('uid', myUid);
+        if(replyTargetId) formData.append('reply_to', replyTargetId);
+        
+        try {
+            await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+            fetchSymfreeMessages(); // 即時更新
+        } catch(e) { alert("送信エラー: " + e.message); }
+    }
     
-    await addDoc(collection(db, "fake_loilo_v2"), payload);
     chatInput.value = ""; window.cancelReply();
 }
         sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
         chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
         document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
 
-        const qMsg = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
-/* --- onSnapshotの書き換え --- */
-onSnapshot(qMsg, (snap) => {
-    currentChatDocs = snap; // 最新データを保存（既読処理用）
-    msgList.innerHTML = ""; 
-    const idMap = {}; 
-    const userMap = {}; 
+// ★ここから新しい描画ロジック
+function renderChatMessages(messageList) {
+    // 既読データを保持するための変数 (Firebaseモード時のみ使用)
+    const currentList = messageList; 
+    
+    msgList.innerHTML = "";
+    const idMap = {};
+    const userMap = {};
 
-    snap.forEach(d => { 
-        const data = d.data(); 
-        idMap[d.id] = data.text || "画像"; 
-        if(data.uid && data.name) { 
-            const parts = data.name.split('・'); 
-            userMap[data.uid] = parts.length > 1 ? parts[1] : data.name; 
-        } 
+    // IDマップ作成
+    messageList.forEach(d => {
+        idMap[d.id] = d.text || "画像";
+        if(d.uid && d.name) {
+            const parts = d.name.split('・');
+            userMap[d.uid] = parts.length > 1 ? parts[1] : d.name;
+        }
     });
 
-    // ★ もし提出箱が開いたままなら、新しいメッセージが来てもすぐ既読にする
-    if (document.getElementById("chat-overlay").style.display === "flex") {
-        checkAndMarkRead();
-    }
-
-    snap.forEach(docSnap => {
-        const data = docSnap.data();
-        const docId = docSnap.id;
-        
-        /* --- 以前ここにあった「自動既読」コードは削除しました --- */
-
+    messageList.forEach(data => {
+        const docId = data.id;
         const wrapper = document.createElement("div"); 
         wrapper.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
         const card = document.createElement("div"); 
@@ -1938,50 +2077,113 @@ onSnapshot(qMsg, (snap) => {
         if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
         if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
         
-        if (data.uid === myUid && data.createdAt) {
-            const diff = (new Date() - data.createdAt.toDate()) / 1000 / 60;
-            if (diff <= 5 && myPermissions.canUnsend) { html += `<button class="msg-unsend-btn" onclick="unsendMessage('${docId}')">×</button>`; }
-        }
-        
+        // 日時の計算 (Dateオブジェクトか確認)
         let dateStr = "";
+        let diff = 999;
         if (data.createdAt) {
-            const d = data.createdAt.toDate();
+            const d = new Date(data.createdAt); 
             dateStr = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+            diff = (new Date() - d) / 1000 / 60;
+        }
+
+        if (data.uid === myUid && diff <= 5 && myPermissions.canUnsend) { 
+            html += `<button class="msg-unsend-btn" onclick="unsendMessage('${docId}')">×</button>`; 
         }
 
         card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)} <span style="font-size:0.75rem; color:#888; font-weight:normal; margin-left:8px;">${dateStr}</span></div><div class="msg-content">${html}</div>`;
         wrapper.appendChild(card);
         
-        if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
+        // 既読表示 (Firebaseモードのみ)
+        if(chatServerMode === 'firebase' && data.uid === myUid && data.readBy && data.readBy.length > 0) {
             const read = document.createElement("div"); 
             read.className = "read-label"; 
-            const count = data.readBy.length; 
-            
-            // ★ 修正: 名前が含まれている既読データ("UID:名前")に対応
-            const readerNames = data.readBy.map(entry => {
-                if (entry.includes(':')) {
-                    return entry.split(':')[1]; // 名前を取り出す
-                }
-                return userMap[entry] || "不明"; // 古いデータはマップから探す
-            }).join("、");
-            
+            const count = data.readBy.length;
+            const readerNames = data.readBy.map(entry => entry.includes(':') ? entry.split(':')[1] : (userMap[entry]||"不明")).join("、");
             read.textContent = "既読 " + count;
-            read.title = "既読: " + readerNames; 
+            read.title = "既読: " + readerNames;
             wrapper.appendChild(read);
         }
         msgList.appendChild(wrapper);
     });
-    
-    // チャットが開いている時だけスクロール
+
     if (document.getElementById("chat-overlay").style.display === "flex") {
         msgList.scrollTop = msgList.scrollHeight;
     }
-});
+}
 
-        window.unsendMessage = async function(docId) {
-            if(!confirm("送信を取り消しますか？")) return;
-            try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("失敗: " + e.message); }
-        };
+// 同期開始関数
+function startChatSync() {
+    if (chatServerMode === 'firebase') {
+        const qMsg = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
+        onSnapshot(qMsg, (snap) => {
+            currentChatDocs = snap; // 既読処理用に保存
+            const list = [];
+            snap.forEach(d => {
+                const dt = d.data();
+                dt.id = d.id;
+                dt.createdAt = dt.createdAt ? dt.createdAt.toDate() : new Date();
+                list.push(dt);
+            });
+            renderChatMessages(list);
+            if (document.getElementById("chat-overlay").style.display === "flex") checkAndMarkRead();
+        });
+    } else {
+        if(symfreePollingInterval) clearInterval(symfreePollingInterval);
+        fetchSymfreeMessages();
+        symfreePollingInterval = setInterval(fetchSymfreeMessages, 3000);
+    }
+}
+
+// PHPサーバーから取得する関数
+async function fetchSymfreeMessages() {
+    try {
+        const formData = new FormData();
+        formData.append('cmd', 'get_chat');
+        const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+        const json = await res.json();
+        if (json.status === 'ok' && Array.isArray(json.data)) {
+            const list = json.data.map(item => ({
+                id: item.id,
+                text: item.text,
+                imageUrl: item.image_url,
+                name: item.name,
+                uid: item.uid,
+                replyTo: item.reply_to,
+                createdAt: new Date(item.created_at),
+                readBy: []
+            }));
+            renderChatMessages(list);
+        }
+    } catch(e) { console.error("PHP fetch error", e); }
+}
+
+startChatSync(); // 実行
+// ★ここまで貼り付け
+
+window.unsendMessage = async function(docId) {
+    if(!confirm("送信を取り消しますか？")) return;
+    
+    if (chatServerMode === 'firebase') {
+        try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("失敗: " + e.message); }
+    } else {
+        // シンフリー(PHP)の削除処理
+        const formData = new FormData();
+        formData.append('cmd', 'delete_chat');
+        formData.append('id', docId);   // 削除したいメッセージのID
+        formData.append('uid', myUid);  // 自分のUID（本人確認用）
+        
+        try { 
+            const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+            // エラーの詳細を確認できるように変更
+            const json = await res.json();
+            if(json.status === 'ok') {
+                fetchSymfreeMessages(); // 成功したら画面更新
+            } else {
+                alert("削除できませんでした: " + json.message);
+            }
+        } catch(e) { alert("通信エラー: " + e.message); }
+    }
+};
 
         btnCamera.addEventListener("click", async () => {
             const cameraOverlay = document.getElementById("camera-overlay");
@@ -2008,16 +2210,74 @@ document.getElementById("view-edit").addEventListener("click", (e) => {
         window.sendCardFromEditor = function() { if(document.getElementById("card-textarea").value.trim()){ closeEditor(); toggleChat(true); sendPayload(document.getElementById("card-textarea").value); } };
         document.body.addEventListener("click", (e) => { if(!document.getElementById("color-picker-overlay").contains(e.target)&&!document.getElementById("btn-text").contains(e.target)) document.getElementById("color-picker-overlay").style.display="none"; });
 
-        const trashBtn = document.getElementById("trash-btn");
+const trashBtn = document.getElementById("trash-btn");
         trashBtn.addEventListener("dblclick", async () => {
-            if (!confirm("全データを削除しますか？")) return;
-            try { const q = query(collection(db, "fake_loilo_v2")); const querySnapshot = await getDocs(q); const deletePromises = []; querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); }); await Promise.all(deletePromises); alert("削除しました"); logSystemEvent("削除", "全データ削除(ゴミ箱)", currentLoginId); } catch (e) { alert("削除エラー: " + e.message); }
+            if (!confirm("【警告】\n表示中のサーバーのチャット履歴を全て削除しますか？")) return;
+            
+            if (chatServerMode === 'firebase') {
+                // --- Firebase削除 (既存) ---
+                try { 
+                    const q = query(collection(db, "fake_loilo_v2")); 
+                    const querySnapshot = await getDocs(q); 
+                    const deletePromises = []; 
+                    querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); }); 
+                    await Promise.all(deletePromises); 
+                    alert("Firebaseのデータを全削除しました"); 
+                } catch (e) { alert("削除エラー: " + e.message); }
+            } else {
+                // --- シンフリー(PHP)全削除 (新規) ---
+                try {
+                    const formData = new FormData();
+                    formData.append('cmd', 'delete_all');
+                    
+                    const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+                    const json = await res.json();
+                    
+                    if(json.status === 'ok') {
+                        alert("シンフリーサーバーのデータを全削除しました");
+                        fetchSymfreeMessages(); // 画面更新
+                    } else {
+                        alert("削除失敗: " + json.message);
+                    }
+                } catch(e) { alert("通信エラー: " + e.message); }
+            }
         });
 
-        document.getElementById("admin-delete-all-btn").addEventListener("click", async () => {
-            if (!confirm("【警告】\nすべてのチャット履歴と画像を削除します。\n本当によろしいですか？")) return;
+document.getElementById("admin-delete-all-btn").addEventListener("click", async () => {
+            if (!confirm("【警告】\nすべてのチャット履歴を削除します。\n本当によろしいですか？")) return;
             if (!confirm("削除されたデータは復元できません。\n実行しますか？")) return;
-            try { const q = query(collection(db, "fake_loilo_v2")); const querySnapshot = await getDocs(q); const deletePromises = []; querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); }); await Promise.all(deletePromises); alert("履歴を全消去しました。"); logSystemEvent("削除", "全データ削除(管理者)", currentLoginId); } catch (e) { alert("削除エラー: " + e.message); }
+
+            if (chatServerMode === 'firebase') {
+                // --- Firebase削除 (既存) ---
+                try { 
+                    const q = query(collection(db, "fake_loilo_v2")); 
+                    const querySnapshot = await getDocs(q); 
+                    const deletePromises = []; 
+                    querySnapshot.forEach((document) => { deletePromises.push(deleteDoc(document.ref)); }); 
+                    await Promise.all(deletePromises); 
+                    alert("履歴を全消去しました。(Firebase)"); 
+                    logSystemEvent("削除", "全データ削除(管理者)", currentLoginId); 
+                } catch (e) { alert("削除エラー: " + e.message); }
+            } else {
+                // --- シンフリー(PHP)全削除 (新規) ---
+                try {
+                    const formData = new FormData();
+                    formData.append('cmd', 'delete_all');
+                    
+                    const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+                    const json = await res.json();
+                    
+                    if(json.status === 'ok') {
+                        alert("履歴を全消去しました。(シンフリー)");
+                        // もし管理者画面でチャット管理タブを開いていれば更新
+                        if(typeof fetchAdminSymfree === 'function') {
+                            fetchAdminSymfree();
+                        }
+                    } else {
+                        alert("削除失敗: " + json.message);
+                    }
+                } catch(e) { alert("通信エラー: " + e.message); }
+            }
         });
         
         window.downloadChatCSV = async function() {
