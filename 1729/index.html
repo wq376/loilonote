@@ -2395,6 +2395,7 @@ document.getElementById("admin-delete-all-btn").addEventListener("click", async 
                 web: { label: "Web版", status: "ok" },
                 admin: { label: "管理画面", status: "ok" },
                 chat: { label: "チャット機能", status: "ok" },
+                contact4: { label: "PHPサーバー", status: "ok" },
                 contact1: { label: "連絡用サーバー1", status: "ok" },
                 contact2: { label: "連絡用サーバー2", status: "ok" },
                 contact3: { label: "連絡用サーバー3", status: "ok" },
@@ -2520,7 +2521,7 @@ document.getElementById("admin-delete-all-btn").addEventListener("click", async 
             const labels = {
                 api: "APIサーバー", web: "Web版", admin: "管理画面",
                 chat: "チャット機能", contact1: "連絡用サーバー1", contact2: "連絡用サーバー2", 
-                contact3: "連絡用サーバー3", image: "画像用サーバー", srv1937: "1937サーバー"
+                contact3: "連絡用サーバー3", contact3: "PHPサーバー", image: "画像用サーバー", srv1937: "1937サーバー"
             };
             order.forEach(key => { const val = document.getElementById(`status-select-${key}`).value; services[key] = { label: labels[key], status: val }; });
             
