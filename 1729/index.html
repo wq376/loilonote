@@ -781,44 +781,7 @@
 </div>
 
 
-<!-- 資料箱（AIリンク集）モーダル -->
-<div id="view-material-box" class="overlay-screen" onclick="closeMaterialBox()">
-    <div class="material-box-modal" onclick="event.stopPropagation()">
-        <div class="material-header">
-            <h3>資料箱 (AIツール)</h3>
-            <span class="close-material-btn" onclick="closeMaterialBox()">×</span>
-        </div>
-<div class="material-btn" onclick="window.open('https://grok.com/', '_blank')">
-    <span class="m-icon">
-        <img src="grok.png" alt="Grok" class="box-icon-img">
-    </span>
-    <span class="m-label">Grok</span>
-    <span class="m-desc">xAI</span>
-</div>
-            <div class="material-btn" onclick="window.open('https://ai.rakuten.co.jp/chat', '_blank')">
-    <span class="m-icon">
-        <img src="rakuten.jpg" alt="Rakuten AI" class="box-icon-img">
-    </span>
-                <span class="m-label">Rakuten AI</span>
-                <span class="m-desc">楽天</span>
-            </div>
-            <div class="material-btn" onclick="window.open('https://felo.ai/ja/search', '_blank')">
-    <span class="m-icon">
-        <img src="felo.jpg" alt="Felo" class="box-icon-img">
-    </span>
-                <span class="m-label">Felo</span>
-                <span class="m-desc">検索AI</span>
-            </div>
-            <div class="material-btn" onclick="window.open('https://www.perplexity.ai/', '_blank')">
-    <span class="m-icon">
-        <img src="Perplexity.png" alt="Perplexity" class="box-icon-img">
-    </span>
-                <span class="m-label">Perplexity</span>
-                <span class="m-desc">対話型検索</span>
-            </div>
-        </div>
-    </div>
-</div>
+
 
     <!-- アプリ設定モーダル -->
     <div id="view-settings">
@@ -952,25 +915,16 @@
         const db = getFirestore(app);
 
         
-        const INITIAL_USERS = {
-            "1726": { name: "田中大樹", isAllowed: true, isAdmin: true, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "6351": { name: "西尾青葉", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "7253": { name: "西村悠", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "8712": { name: "鴫原宗次郎", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "8827": { name: "富永悠月", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "sample12": { name: "サンプル1", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "sample25": { name: "サンプル2", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "sample726": { name: "サンプル3", isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, needReload: false, canChat: true, canImage: true },
-            "admin": { name: "管理者アカウント", isAllowed: true, isAdmin: true, canChangeName: false, showNickname: false, canUnsend: true, needReload: false, canChat: true, canImage: true }
-        };
+
         const SUPER_ADMIN_ID = "1726";
         const SUPER_ADMIN_PASS = "1726";
         const ADMIN_PASS = "admin";
 
         let currentStream = null;
         /* --- 変数定義エリアに追加 --- */
-let currentChatDocs = null; // チャットデータを保存しておく変数
+        let currentChatDocs = null; // チャットデータを保存しておく変数
         let selectedColor = '#ffcdd2';
+        let isNicknameHidden = false;
         let myName = localStorage.getItem('loilo_v2_name') || "ここに名前を入力";
         let realName = "";
         let currentLoginId = ""; 
@@ -1016,45 +970,10 @@ function generateAdminCode() {
     return char + num; // 例: k829104
 }
 
+// 初期化機能はもう不要なので、中身を空にします
 async function initDB() {
-    try {
-        // ユーザー初期化
-        const docRef = doc(db, "config", "users");
-        const docSnap = await getDoc(docRef);
-        
-        if (!docSnap.exists()) {
-            // 初回作成時：全員にコードを生成して保存
-            const usersWithCode = {};
-            for (const [uid, uData] of Object.entries(INITIAL_USERS)) {
-                usersWithCode[uid] = { ...uData, adminCode: generateAdminCode() };
-            }
-            await setDoc(docRef, usersWithCode);
-        } else {
-            // 既存データがある場合：コードを持っていないユーザーに後付けで付与
-            const users = docSnap.data();
-            let needsUpdate = false;
-            for (const [uid, uData] of Object.entries(users)) {
-                if (!uData.adminCode) {
-                    uData.adminCode = generateAdminCode();
-                    needsUpdate = true;
-                }
-            }
-            if (needsUpdate) {
-                await setDoc(docRef, users, { merge: true });
-            }
-        }
-
-        // フィルター初期化
-        const filterRef = doc(db, "config", "filters");
-        const filterSnap = await getDoc(filterRef);
-        if (!filterSnap.exists()) { await setDoc(filterRef, { words: ["死ね", "殺す", "バカ", "アホ", "うざい"] }); }
-
-        // お知らせ初期化
-        const updateRef = doc(db, "config", "updates");
-        const updateSnap = await getDoc(updateRef);
-        if (!updateSnap.exists()) { await setDoc(updateRef, { list: [] }); }
-
-    } catch(e) { console.error("DB初期化エラー", e); }
+    // データベースは作成済みのため何もしない
+    console.log("DB check skipped.");
 }
         initDB();
 
@@ -1274,55 +1193,66 @@ function checkAndMarkRead() {
         }
 
 async function logSystemEvent(type, msg, userId) {
-    try {
-        let displayStr = "不明なユーザー";
+            // return; // ログは保存する設定
+            try {
+                let displayStr = "不明なユーザー";
 
-        // 特権管理者やシステムの場合
-        if (userId === "SUPER_ADMIN" || userId === "admin" || userId === "SystemAdmin") {
-            displayStr = "管理者 (System)";
-        } else {
-            // DBから最新のユーザー情報を取得して、管理コードを探す
-            const userRef = doc(db, "config", "users");
-            const snap = await getDoc(userRef);
-            if (snap.exists()) {
-                const userData = snap.data()[userId];
-                if (userData) {
-                    const name = userData.name || "名称未設定";
-                    // ここで管理コードを使用 (なければ生成して表示)
-                    const code = userData.adminCode || "NoCode";
-                    // ログに保存される文字列: "田中大樹 (Code: k123456)"
-                    displayStr = `${name} (Code: ${code})`;
+                if (userId === "SUPER_ADMIN" || userId === "admin" || userId === "SystemAdmin") {
+                    displayStr = "管理者 (System)";
                 } else {
-                    displayStr = `削除済ユーザー (ID隠蔽)`;
+                    const userRef = doc(db, "config", "users");
+                    const snap = await getDoc(userRef);
+                    if (snap.exists()) {
+                        const userData = snap.data()[userId];
+                        if (userData) {
+                            const name = userData.name || "名称未設定";
+                            const code = userData.adminCode || "NoCode";
+                            displayStr = `${name} (Code: ${code})`;
+                        } else {
+                            displayStr = `削除済ユーザー (ID隠蔽)`;
+                        }
+                    }
                 }
-            }
+
+                await addDoc(collection(db, "system_logs"), { 
+                    type: type, 
+                    message: msg, 
+                    user: displayStr, 
+                    timestamp: serverTimestamp() 
+                });
+            } catch(e) { console.error("ログ保存エラー", e); }
         }
 
-        // IDを含まない安全な文字列(displayStr)をログに保存
-        await addDoc(collection(db, "system_logs"), { 
-            type: type, 
-            message: msg, 
-            user: displayStr, 
-            timestamp: serverTimestamp() 
-        });
-    } catch(e) { console.error("ログ保存エラー", e); }
-}
+        // ★修正: 資料箱ボタンを押したら、ニックネームの表示/非表示を切り替える
+        window.openMaterialBox = function() {
+            isNicknameHidden = !isNicknameHidden;
+            updateNameDisplay();
+        };
 
-        const currentNameSpan = document.getElementById("current-name");
-        const nameRefs = document.querySelectorAll(".display-name-ref");
-        const dateSpan = document.getElementById("current-date");
-        const now = new Date();
-        dateSpan.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日のノート`;
+        // 不要になったので空の関数
+        window.closeMaterialBox = function() {};
 
+        // ★修正: 名前表示の更新ロジック
         function updateNameDisplay() {
             if(!currentUserData) return;
-            let displayName = currentUserData.name;
-            if (currentUserData.showNickname && myName) { displayName = `${myName}・${currentUserData.name}`; }
-            currentNameSpan.textContent = displayName;
-            nameRefs.forEach(el => el.textContent = displayName);
-            pUserId.textContent = currentLoginId; 
-            pUserRealName.textContent = currentUserData.name;
+            
+            let displayName = currentUserData.name; // デフォルトは本名
+
+            // ニックネーム表示ON、ニックネーム有り、隠すモードじゃない場合
+            if (currentUserData.showNickname && myName && !isNicknameHidden) { 
+                displayName = `${myName}・${currentUserData.name}`; 
+            }
+            
+            // 画面に反映
+            document.getElementById("current-name").textContent = displayName;
+            document.querySelectorAll(".display-name-ref").forEach(el => el.textContent = displayName);
+            document.getElementById("p-user-id").textContent = currentLoginId; 
+            document.getElementById("p-user-realname").textContent = currentUserData.name;
         }
+
+        const dateSpan = document.getElementById("current-date");
+        const now = new Date();
+        if(dateSpan) dateSpan.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日のノート`;
 
         headerUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
         editUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
@@ -2023,65 +1953,109 @@ function renderSystemLogs() {
 
         window.cancelReply = function() { replyTargetId = null; replyStatusBar.style.display = "none"; }
 
+// ★修正: 画像アップロードのエラー検知を追加した送信関数
 async function sendPayload(text="", file=null) {
+    // 1. バリデーション
     if(!text && !file) return;
     if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
     if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
     
+    // 2. テキストのNGワード処理
     let safeText = text;
-    if(safeText) { ngWords.forEach(badWord => { if(badWord && safeText.includes(badWord)) { safeText = safeText.split(badWord).join("*".repeat(badWord.length)); } }); }
+    if(safeText) { 
+        ngWords.forEach(badWord => { 
+            if(badWord && safeText.includes(badWord)) { 
+                safeText = safeText.split(badWord).join("*".repeat(badWord.length)); 
+            } 
+        }); 
+    }
     
     let imageUrl = null;
+    
+    // 3. 画像がある場合の処理
     if(file) {
-        // 1. 画像を読み込む
+        // 画像をBase64に変換
         const base64 = await new Promise(resolve => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.readAsDataURL(file);
         });
 
-        // 2. シンフリーサーバーに送って、画像のURLをもらう
+        // シンフリーサーバーへアップロード
         try {
+            // ローディング表示（任意）
+            sendBtn.textContent = "送信中...";
+            sendBtn.disabled = true;
+
             const res = await fetch(PHP_IMAGE_API, {
                 method: "POST",
-                body: JSON.stringify({ cmd: "upload_image", payload: { image: base64 } })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    cmd: "upload_image", 
+                    payload: { image: base64 } 
+                })
             });
             const resData = await res.json();
+            
             if(resData.status === "ok") {
-                imageUrl = resData.url; // ここでURLをゲット
+                imageUrl = resData.url; // 成功！URL取得
+            } else {
+                alert("画像のアップロードに失敗しました。\nサーバーのuploadsフォルダの権限を確認してください。\nエラー: " + (resData.message || "不明"));
+                sendBtn.textContent = "送信";
+                sendBtn.disabled = false;
+                return; // 中断
             }
         } catch(e) {
-            alert("画像サーバーへのアップロードに失敗しました");
+            alert("画像サーバーへの通信に失敗しました: " + e.message);
+            sendBtn.textContent = "送信";
+            sendBtn.disabled = false;
             return;
         }
     }
 
+    // 4. 送信者名の決定
     let senderName = currentUserData ? currentUserData.name : "Unknown";
-    if (currentUserData && currentUserData.showNickname && myName) { senderName = `${myName}・${currentUserData.name}`; }
-    
-// ★ここを書き換え
-    if (chatServerMode === 'firebase') {
-        const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
-        if(replyTargetId) payload.replyTo = replyTargetId;
-        await addDoc(collection(db, "fake_loilo_v2"), payload);
-    } else {
-        // シンフリー(PHP)へ送信
-        const formData = new FormData();
-        formData.append('cmd', 'save_chat');
-        formData.append('text', safeText);
-        if(imageUrl) formData.append('image_url', imageUrl);
-        formData.append('name', senderName);
-        formData.append('uid', myUid);
-        if(replyTargetId) formData.append('reply_to', replyTargetId);
-        
-        try {
-            await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
-            fetchSymfreeMessages(); // 即時更新
-        } catch(e) { alert("送信エラー: " + e.message); }
+    if (currentUserData && currentUserData.showNickname && myName) { 
+        senderName = `${myName}・${currentUserData.name}`; 
     }
     
-    chatInput.value = ""; window.cancelReply();
+    // 5. チャットデータ本体の送信
+    try {
+        if (chatServerMode === 'firebase') {
+            // Firebaseへ送信
+            const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
+            if(replyTargetId) payload.replyTo = replyTargetId;
+            await addDoc(collection(db, "fake_loilo_v2"), payload);
+        } else {
+            // シンフリー(PHP)へ送信
+            const formData = new FormData();
+            formData.append('cmd', 'save_chat');
+            formData.append('text', safeText);
+            if(imageUrl) formData.append('image_url', imageUrl);
+            formData.append('name', senderName);
+            formData.append('uid', myUid);
+            if(replyTargetId) formData.append('reply_to', replyTargetId);
+            
+            await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
+            
+            // すぐに画面を更新
+            if(typeof fetchSymfreeMessages === 'function') {
+                fetchSymfreeMessages();
+            }
+        }
+    } catch(e) {
+        alert("送信エラー: " + e.message);
+    } finally {
+        // 後処理
+        chatInput.value = ""; 
+        window.cancelReply();
+        sendBtn.textContent = "送信";
+        sendBtn.disabled = false;
+        // ファイル選択をリセット（同じ画像を連続で送れるようにする）
+        document.getElementById("file-input").value = ""; 
+    }
 }
+
         sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
         chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
         document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
