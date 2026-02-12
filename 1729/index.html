@@ -1006,961 +1006,75 @@ function getMyDisplayName() {
     return currentUserData.name;
 }
 
-/* --- 既読処理関数の追加 --- */
+// --- ▼▼▼ ここから下を既存のコードと置き換えてください ▼▼▼ ---
+
+/* --- 既読処理関数の修正版 (両モード対応) --- */
 function checkAndMarkRead() {
-    if (!currentChatDocs) return;
+    // 提出箱が開いていないなら何もしない
+    if (document.getElementById("chat-overlay").style.display !== "flex") return;
+
     const myNameStr = getMyDisplayName();
-    // 既読データとして「UID:名前」という形式で保存する（これで発言してなくても名前がわかる）
-    const readSignature = myUid + ":" + myNameStr;
+    const readSignature = myUid + ":" + myNameStr; // "UID:名前" の形式
 
-    currentChatDocs.forEach(docSnap => {
-        const data = docSnap.data();
-        const docId = docSnap.id;
-        
-        // 自分のメッセージには既読をつけない
-        if (data.uid === myUid) return;
+    if (chatServerMode === 'firebase') {
+        // --- Firebaseモード ---
+        if (!currentChatDocs) return;
+        currentChatDocs.forEach(docSnap => {
+            const data = docSnap.data();
+            const docId = docSnap.id;
+            if (data.uid === myUid) return; // 自分はスキップ
 
-        // 既に既読かチェック
-        // (古い形式の"UID"だけの場合と、新しい形式の"UID:名前"の両方に対応)
-        const isRead = data.readBy && data.readBy.some(sig => {
-            const sigUid = sig.includes(':') ? sig.split(':')[0] : sig;
-            return sigUid === myUid;
-        });
-
-        // まだ既読でなければ更新
-        if (!isRead) {
-            updateDoc(doc(db, "fake_loilo_v2", docId), {
-                readBy: arrayUnion(readSignature)
+            const isRead = data.readBy && data.readBy.some(sig => {
+                const sigUid = sig.includes(':') ? sig.split(':')[0] : sig;
+                return sigUid === myUid;
             });
-        }
-    });
-}
 
-// 3. お知らせ同期（Firebaseからデータを取ってきて画面に表示する）
-        onSnapshot(doc(db, "config", "updates"), (snap) => {
-            const list = (snap.exists() && snap.data().list) ? snap.data().list : [];
-            
-            // ユーザーが見るリスト (user-update-list)
-            const uDiv = document.getElementById("user-update-list"); 
-            if (uDiv) {
-                // データがない時は「お知らせはありません」と表示
-                if (list.length === 0) {
-                    uDiv.innerHTML = '<div style="padding:40px; text-align:center; color:#888;">現在、新しいお知らせはありません。</div>';
-                } else {
-                    uDiv.innerHTML = ""; // 一旦クリア
-                    // 最新のものが上に来るように逆順で表示
-                    list.slice().reverse().forEach(u => {
-                        uDiv.innerHTML += `
-                            <div class="update-item">
-                                <div class="u-header">
-                                    ${u.isNew ? `<span class="u-tag new">NEW</span>` : ""}
-                                    <span class="u-date">${escapeHtml(u.date)}</span>
-                                </div>
-                                <div class="u-title">${escapeHtml(u.title)}</div>
-                                <div class="u-body" style="white-space:pre-wrap;">${escapeHtml(u.body)}</div>
-                            </div>`;
-                    });
-                }
-            }
-
-            // 管理画面で見れる削除用のリスト (admin-update-list-container)
-            const aDiv = document.getElementById("admin-update-list-container"); 
-            if (aDiv) {
-                aDiv.innerHTML = "";
-                list.forEach((u, i) => {
-                    aDiv.innerHTML += `
-                        <div class="admin-upd-item">
-                            <div class="admin-upd-header">${escapeHtml(u.date)} ${u.isNew ? "[NEW]" : ""}</div>
-                            <div class="admin-upd-title">${escapeHtml(u.title)}</div>
-                            <button class="admin-upd-del" onclick="deleteUpdateItem(${i})">削除</button>
-                        </div>`;
+            if (!isRead) {
+                updateDoc(doc(db, "fake_loilo_v2", docId), {
+                    readBy: arrayUnion(readSignature)
                 });
             }
         });
-
-        window.goToUserLogin = function() { viewPortal.style.display = "none"; viewUserLogin.style.display = "flex"; document.getElementById("user-pass-input").focus(); };
-        window.goToAdminLogin = function() { viewPortal.style.display = "none"; viewAdminLogin.style.display = "flex"; document.getElementById("admin-pass-input").focus(); };
-        
-        window.backToPortal = function() { 
-            viewUserLogin.style.display = "none"; 
-            viewAdminLogin.style.display = "none"; 
-            if (currentLoginId) {
-                if (viewEdit.style.display === "block") {} else { viewList.style.display = "flex"; }
-            } else {
-                viewPortal.style.display = "flex"; 
-            }
-            document.getElementById("user-pass-input").value = "";
-            document.getElementById("admin-pass-input").value = "";
-            document.getElementById("user-login-error").textContent = "";
-            document.getElementById("admin-login-error").textContent = "";
-        };
-        
-        window.backFromAdmin = function() {
-            viewAdminLogin.style.display = "none";
-            document.getElementById("admin-login-error").textContent = "";
-            document.getElementById("admin-pass-input").value = "";
-            if (currentLoginId) {
-                if (viewEdit.style.display === "block") {} else { viewList.style.display = "flex"; }
-            } else {
-                viewPortal.style.display = "flex";
-            }
-        };
-        
-        window.goToEditMode = function() { document.getElementById('view-list').style.display = 'none'; document.getElementById('view-edit').style.display = 'block'; };
-        window.goToListMode = function() { document.getElementById('view-edit').style.display = 'none'; document.getElementById('view-list').style.display = 'flex'; toggleChat(false); closeCamera(); closeColorPicker(); closeEditor(); };
-
-        document.getElementById("user-login-btn").addEventListener("click", performUserLogin);
-        document.getElementById("user-pass-input").addEventListener("keypress", (e) => { if(e.key === "Enter") performUserLogin(); });
-
-        async function performUserLogin() {
-            const val = document.getElementById("user-pass-input").value;
-            const docRef = doc(db, "config", "users");
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                const allUsers = docSnap.data();
-                const user = allUsers[val];
-                if (user) {
-                    if(user.isAllowed === false) {
-                        document.getElementById("user-login-error").textContent = "このアカウントはロックされています";
-                        return;
-                    }
-                    localStorage.setItem('loilo_saved_session_id', val);
-                    currentUserData = user;
-                    currentLoginId = val;
-                    startUserListener(val);
-                    logSystemEvent("ログイン", "ユーザーログイン成功", val);
-                    viewUserLogin.style.display = "none";
-                    viewList.style.display = "flex";
-                    updateNameDisplay();
-                    return;
-                }
-            }
-            document.getElementById("user-login-error").textContent = "パスワードが違います";
-            document.getElementById("user-pass-input").value = "";
-        }
-
-        let currentUserData = null; 
-        function startUserListener(loginId) {
-            onSnapshot(doc(db, "config", "users"), (docSnap) => {
-                if (docSnap.exists()) {
-                    const allUsers = docSnap.data();
-                    const me = allUsers[loginId];
-                    if (!me) return; 
-                    currentUserData = me; 
-                    if (me.canChat === undefined) me.canChat = true;
-                    if (me.canImage === undefined) me.canImage = true;
-                    myPermissions = me; 
-                    if (me.isAllowed === false) {
-                        alert("このアカウントでのログインは禁止されています。\n再読み込みしてください。");
-                        localStorage.removeItem('loilo_saved_session_id');
-                        location.reload(); 
-                    }
-                    if (me.canChangeName === false) {
-                        menuChangeName.style.display = "none";
-                    } else {
-                        menuChangeName.style.display = "block";
-                    }
-                    if (me.canChat === false) {
-                        chatInput.disabled = true; chatInput.placeholder = "送信が制限されています"; sendBtn.disabled = true; sendBtn.style.opacity = 0.5;
-                    } else {
-                        chatInput.disabled = false; chatInput.placeholder = "メッセージ..."; sendBtn.disabled = false; sendBtn.style.opacity = 1;
-                    }
-                    if (me.canImage === false) {
-                        photoBtn.style.display = "none"; if(btnCamera) btnCamera.style.display = "none"; if(btnFile) btnFile.style.display = "none";
-                    } else {
-                        if(btnCamera) btnCamera.style.display = "flex"; if(btnFile) btnFile.style.display = "flex";
-                    }
-                    if (me.alertMessage) {
-                        alert("【管理者からのお知らせ】\n" + me.alertMessage);
-                        updateDoc(doc(db, "config", "users"), { [loginId + ".alertMessage"]: deleteField() });
-                    }
-                    if (currentAdminSessionType === 'user' && !me.isAdmin) {
-                        alert("管理者権限が解除されたため、ログアウトします。");
-                        closeAdminPanel();
-                    }
-                    if (me.needReload === true) {
-                        alert("管理者により更新が要求されました。");
-                        setDoc(doc(db, "config", "users"), { [loginId]: { needReload: false } }, { merge: true }).then(() => { location.reload(); });
-                    }
-                    updateNameDisplay();
-                }
-            });
-            updateDeviceInfo(loginId, navigator.userAgent);
-        }
-        
-        async function updateDeviceInfo(id, ua) {
-            try { await setDoc(doc(db, "config", "users"), { [id]: { lastDevice: ua } }, { merge: true }); } catch(e) {}
-        }
-
-async function logSystemEvent(type, msg, userId) {
-            // return; // ログは保存する設定
-            try {
-                let displayStr = "不明なユーザー";
-
-                if (userId === "SUPER_ADMIN" || userId === "admin" || userId === "SystemAdmin") {
-                    displayStr = "管理者 (System)";
-                } else {
-                    const userRef = doc(db, "config", "users");
-                    const snap = await getDoc(userRef);
-                    if (snap.exists()) {
-                        const userData = snap.data()[userId];
-                        if (userData) {
-                            const name = userData.name || "名称未設定";
-                            const code = userData.adminCode || "NoCode";
-                            displayStr = `${name} (Code: ${code})`;
-                        } else {
-                            displayStr = `削除済ユーザー (ID隠蔽)`;
-                        }
-                    }
-                }
-
-                await addDoc(collection(db, "system_logs"), { 
-                    type: type, 
-                    message: msg, 
-                    user: displayStr, 
-                    timestamp: serverTimestamp() 
-                });
-            } catch(e) { console.error("ログ保存エラー", e); }
-        }
-
-        // ★修正: 資料箱ボタンを押したら、ニックネームの表示/非表示を切り替える
-        window.openMaterialBox = function() {
-            isNicknameHidden = !isNicknameHidden;
-            updateNameDisplay();
-        };
-
-        // 不要になったので空の関数
-        window.closeMaterialBox = function() {};
-
-        // ★修正: 名前表示の更新ロジック
-        function updateNameDisplay() {
-            if(!currentUserData) return;
-            
-            let displayName = currentUserData.name; // デフォルトは本名
-
-            // ニックネーム表示ON、ニックネーム有り、隠すモードじゃない場合
-            if (currentUserData.showNickname && myName && !isNicknameHidden) { 
-                displayName = `${myName}・${currentUserData.name}`; 
-            }
-            
-            // 画面に反映
-            document.getElementById("current-name").textContent = displayName;
-            document.querySelectorAll(".display-name-ref").forEach(el => el.textContent = displayName);
-            document.getElementById("p-user-id").textContent = currentLoginId; 
-            document.getElementById("p-user-realname").textContent = currentUserData.name;
-        }
-
-        const dateSpan = document.getElementById("current-date");
-        const now = new Date();
-        if(dateSpan) dateSpan.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日のノート`;
-
-        headerUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
-        editUserArea.addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
-        function toggleUserMenu() { const isVisible = userMenu.style.display === 'block'; userMenu.style.display = isVisible ? 'none' : 'block'; }
-        document.addEventListener('click', () => { userMenu.style.display = 'none'; });
-        userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
-
-        window.changeNameAction = function() {
-            userMenu.style.display = 'none';
-            if (myPermissions.canChangeName === false) { alert("名前の変更は許可されていません。"); return; }
-            const newName = prompt("表示名を変更:", myName);
-            if(newName && newName.trim() !== ""){ myName = newName; localStorage.setItem('loilo_v2_name', myName); updateNameDisplay(); }
-        };
-        
-        window.performLogout = function() { localStorage.removeItem('loilo_saved_session_id'); location.reload(); };
-        window.openSettings = function() { userMenu.style.display = 'none'; viewSettings.style.display = "flex"; };
-        window.closeSettings = function() { viewSettings.style.display = "none"; };
-        window.goToAdminLoginFromMenu = function() { userMenu.style.display = 'none'; viewList.style.display = 'none'; viewEdit.style.display = 'none'; viewAdminLogin.style.display = 'flex'; }
-        window.openSchedule = function() { document.getElementById('view-schedule').style.display = 'flex'; renderStudentSchedule(); }
-        window.closeSchedule = function() { document.getElementById('view-schedule').style.display = 'none'; }
-        
-        // ★★★ 削除されていた関数の復元 ★★★
-        window.openTestLinks = function() {
-            window.open('https://wq376.github.io/loilonote/1729/kouki.png', '_blank');
-            window.open('https://wq376.github.io/loilonote/1729/2gatu.jpg', '_blank');
-        };
-
-        // --- 追加: 時間割関連ロジック ---
-        
-        async function renderStudentSchedule() {
-            const thead = document.getElementById("student-schedule-head");
-            const tbody = document.getElementById("student-schedule-body");
-            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
-            
-            try {
-                const docRef = doc(db, "config", "schedule");
-                const snap = await getDoc(docRef);
-                let scheduleData = [];
-                let dayInfo = [{},{},{},{},{}];
-                let memo = "";
-
-                if (snap.exists()) {
-                    if (snap.data().data) scheduleData = snap.data().data;
-                    if (snap.data().dayInfo) dayInfo = snap.data().dayInfo;
-                    if (snap.data().memo) memo = snap.data().memo;
-                } else {
-                    scheduleData = [ "国語", "数学", "理科", "英語", "社会", "数学", "英語", "国語", "社会", "理科", "体育", "音楽", "美術", "技術", "家庭", "英語", "理科", "社会", "国語", "数学", "社会", "国語", "数学", "理科", "英語", "総合", "学活", "道徳", "選択", "HR" ];
-                }
-
-                // 備考を表示
-                document.getElementById('student-schedule-memo').textContent = memo;
-
-                // ヘッダー生成 (曜日、時程)
-                let headHtml = `<tr><th></th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr>`;
-                
-                // 時程行
-                headHtml += `<tr><th>時程</th>`;
-                for(let j=0; j<5; j++) {
-                    const type = dayInfo[j].type || "none";
-                    let label = "";
-                    if(type === 'A') label = "A時程";
-                    else if(type === 'B') label = "B時程";
-                    else label = "-"; // なし
-                    headHtml += `<td>${label}</td>`;
-                }
-                headHtml += `</tr>`;
-                thead.innerHTML = headHtml;
-
-                // 本体生成
-                let bodyHtml = "";
-                // 1-4限
-                for(let i=0; i<4; i++) { 
-                    bodyHtml += `<tr><td>${i+1}</td>`; 
-                    for(let j=0; j<5; j++) { bodyHtml += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } 
-                    bodyHtml += "</tr>"; 
-                }
-                
-                // ★給食行の挿入 (4限と昼休みの間)
-                bodyHtml += `<tr><th>給食</th>`;
-                for(let j=0; j<5; j++) {
-                    const hasLunch = dayInfo[j].lunch !== false; // デフォルトtrue
-                    bodyHtml += `<td>${hasLunch ? "○" : "×"}</td>`;
-                }
-                bodyHtml += `</tr>`;
-
-                // 昼休み
-                bodyHtml += `<tr><td colspan="6" style="background:#fafafa; color:#888;">昼休み</td></tr>`;
-                
-                // 5-6限
-                for(let i=4; i<6; i++) { 
-                    bodyHtml += `<tr><td>${i+1}</td>`; 
-                    for(let j=0; j<5; j++) { bodyHtml += `<td>${escapeHtml(scheduleData[i * 5 + j]||"")}</td>`; } 
-                    bodyHtml += "</tr>"; 
-                }
-                tbody.innerHTML = bodyHtml;
-
-            } catch(e) { console.error(e); tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>"; }
-        }
-
-        async function loadAdminSchedule() {
-            const tbody = document.getElementById("admin-schedule-body");
-            tbody.innerHTML = "<tr><td colspan='6'>読み込み中...</td></tr>";
-            try {
-                const docRef = doc(db, "config", "schedule");
-                const snap = await getDoc(docRef);
-                let scheduleData = [];
-                let dayInfo = [{},{},{},{},{}];
-                let memo = "";
-
-                if (snap.exists()) {
-                    if (snap.data().data) scheduleData = snap.data().data;
-                    if (snap.data().dayInfo) dayInfo = snap.data().dayInfo;
-                    if (snap.data().memo) memo = snap.data().memo;
-                } else {
-                    scheduleData = [ "国語", "数学", "理科", "英語", "社会", "数学", "英語", "国語", "社会", "理科", "体育", "音楽", "美術", "技術", "家庭", "英語", "理科", "社会", "国語", "数学", "社会", "国語", "数学", "理科", "英語", "総合", "学活", "道徳", "選択", "HR" ];
-                }
-
-                // 備考入力欄にセット
-                document.getElementById('admin-schedule-memo').value = memo;
-
-                // 管理画面ヘッダー部分への注入
-                const typeRow = document.getElementById('adm-sch-row-type');
-                const lunchRow = document.getElementById('adm-sch-row-lunch');
-                
-                let typeHtml = "<th>時程</th>";
-                let lunchHtml = "<th>給食</th>";
-
-                for(let j=0; j<5; j++) {
-                    const info = dayInfo[j] || {};
-                    // 時程セレクト
-                    typeHtml += `<td>
-                        <select class="sch-type-select" data-col="${j}">
-                            <option value="none" ${info.type==='none'?'selected':''}>なし</option>
-                            <option value="A" ${info.type==='A'?'selected':''}>A時程</option>
-                            <option value="B" ${info.type==='B'?'selected':''}>B時程</option>
-                        </select>
-                    </td>`;
-                    
-                    // 給食セレクト
-                    lunchHtml += `<td>
-                        <select class="sch-lunch-select" data-col="${j}">
-                            <option value="true" ${info.lunch!==false?'selected':''}>あり</option>
-                            <option value="false" ${info.lunch===false?'selected':''}>なし</option>
-                        </select>
-                    </td>`;
-                }
-                typeRow.innerHTML = typeHtml;
-                lunchRow.innerHTML = lunchHtml;
-
-                let html = "";
-                for(let i=0; i<6; i++) { html += `<tr><td>${i+1}</td>`; for(let j=0; j<5; j++) { const val = scheduleData[i * 5 + j] || ""; html += `<td><input type="text" class="admin-schedule-input" value="${escapeHtml(val)}" data-row="${i}" data-col="${j}"></td>`; } html += "</tr>"; }
-                tbody.innerHTML = html;
-            } catch(e) { console.error(e); tbody.innerHTML = "<tr><td colspan='6'>読み込みエラー</td></tr>"; }
-        }
-
-        window.saveSchedule = async function() {
-            // 時間割データ収集
-            const inputs = document.querySelectorAll('.admin-schedule-input');
-            let flatData = new Array(30).fill("");
-            inputs.forEach(input => { const r = parseInt(input.dataset.row); const c = parseInt(input.dataset.col); flatData[r * 5 + c] = input.value; });
-            
-            // 時程・給食データ収集
-            let dayInfo = [];
-            for(let j=0; j<5; j++) {
-                const typeVal = document.querySelector(`.sch-type-select[data-col="${j}"]`).value;
-                const lunchVal = document.querySelector(`.sch-lunch-select[data-col="${j}"]`).value === "true";
-                dayInfo.push({ type: typeVal, lunch: lunchVal });
-            }
-            
-            // 備考データ収集
-            const memo = document.getElementById('admin-schedule-memo').value;
-
-            try { 
-                await setDoc(doc(db, "config", "schedule"), { data: flatData, dayInfo: dayInfo, memo: memo }, { merge: true }); 
-                alert("時間割を保存しました"); 
-                logSystemEvent("設定変更", "時間割を更新", currentLoginId || "admin"); 
-            } catch(e) { alert("保存エラー: " + e.message); }
-        };
-
-        document.getElementById("admin-login-btn").addEventListener("click", performAdminLogin);
-        async function performAdminLogin() {
-            const inputId = document.getElementById("admin-pass-input").value;
-            if (inputId === SUPER_ADMIN_PASS || inputId === ADMIN_PASS) {
-                currentAdminSessionType = 'super';
-                viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
-                adminAddArea.style.display = "flex"; areIdsVisible = false; 
-                renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList(); loadAdminSchedule();
-                logSystemEvent("管理アクセス", "特権管理者としてログイン", "SUPER_ADMIN");
-                return;
-            }
-            try {
-                const docRef = doc(db, "config", "users");
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const allUsers = docSnap.data();
-                    const user = allUsers[inputId];
-                    if (user) {
-                        if (user.isAdmin === true) {
-                            currentAdminSessionType = 'user';
-                            viewAdminLogin.style.display = "none"; viewAdminPanel.style.display = "flex"; 
-                            adminAddArea.style.display = "none"; areIdsVisible = false;
-                            renderAdminList(); renderSystemLogs(); renderAdminChatList(); renderFilterList(); loadAdminSchedule();
-                            logSystemEvent("管理アクセス", "管理者権限ユーザーとしてログイン", inputId);
-                        } else {
-                            document.getElementById("admin-login-error").innerText = "このアカウントは通常アカウントです。\n管理者権限はありません。";
-                            logSystemEvent("警告", "権限のないユーザーが管理者アクセスを試行", inputId);
-                        }
-                        return;
-                    }
-                }
-            } catch(e) { console.error(e); }
-            document.getElementById("admin-login-error").innerText = "パスワードが違います";
-        }
-        
-window.closeAdminPanel = function() { 
-            // シンフリー管理用のタイマーがあれば停止
-            if(typeof adminChatInterval !== 'undefined' && adminChatInterval) {
-                clearInterval(adminChatInterval);
-            }
-            
-            viewAdminPanel.style.display = "none"; 
-            document.getElementById("admin-pass-input").value = "";
-            currentAdminSessionType = 'none';
-            if(currentLoginId) { viewList.style.display = "flex"; } else { viewPortal.style.display = "flex"; }
-        };
-
-        window.switchAdminTab = function(tabName) {
-            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
-            
-            if(tabName === 'log') {
-                document.querySelector('.admin-tab:nth-child(1)').classList.add('active');
-                document.getElementById('tab-content-log').classList.add('active');
-            } else if(tabName === 'chat') {
-                document.querySelector('.admin-tab:nth-child(2)').classList.add('active');
-                document.getElementById('tab-content-chat').classList.add('active');
-            } else if(tabName === 'filter') {
-                document.querySelector('.admin-tab:nth-child(3)').classList.add('active');
-                document.getElementById('tab-content-filter').classList.add('active');
-            } else if(tabName === 'schedule') {
-                document.querySelector('.admin-tab:nth-child(4)').classList.add('active');
-                document.getElementById('tab-content-schedule').classList.add('active');
-    } else if(tabName === 'server') {
-        document.querySelector('.admin-tab:nth-child(5)').classList.add('active');
-        document.getElementById('tab-content-server').classList.add('active');
-        renderServerList();
-        
-        // ★追加: 現在のモードを表示
-        const currentDisp = document.getElementById('current-chat-mode-disp');
-        const radios = document.getElementsByName('chat_mode_select');
-        if(chatServerMode === 'firebase') {
-            if(currentDisp) {
-                currentDisp.textContent = "Firebase (デフォルト)";
-                currentDisp.style.color = "#FF9800";
-            }
-            if(radios.length > 0) radios[0].checked = true;
-        } else {
-            if(currentDisp) {
-                currentDisp.textContent = "シンフリーサーバー (PHP)";
-                currentDisp.style.color = "#0099ff";
-            }
-            if(radios.length > 0) radios[1].checked = true;
-        }
-    }
-            // 既存の関数内に追加
-        // ... 他のelse ifの後 ...
-        else if(tabName === 'update') {
-            // HTMLに追加した順番に合わせてnth-childの番号を調整してください
-            // 例: ログ, チャット, NG, 時間割, サーバー, 状況, お知らせ(これ) => 7番目
-            document.querySelectorAll('.admin-tab')[6].classList.add('active'); 
-            document.getElementById('tab-content-update').classList.add('active');
-            renderAdminUpdates();
-            
-            // 日付入力欄に今日の日付をセット
-            const today = new Date();
-            const y = today.getFullYear();
-            const m = ('0' + (today.getMonth()+1)).slice(-2);
-            const d = ('0' + today.getDate()).slice(-2);
-            document.getElementById('upd-input-date').value = `${y}.${m}.${d}`;
-        }else if(tabName === 'status') {
-                document.querySelector('.admin-tab:nth-child(6)').classList.add('active');
-                document.getElementById('tab-content-status').classList.add('active');
-                loadAdminStatusSettings();
-            }
-        };
-// ★修正: サーバー切り替え（全員に適用）
-        window.changeChatMode = async function(mode) {
-            // 現在のモードと同じなら何もしない
-            if(mode === chatServerMode) return;
-
-            if(!confirm(`【重要】\n全ユーザーのチャット接続先を「${mode === 'firebase' ? 'Firebase' : 'シンフリーサーバー'}」に変更します。\n\n・全員の画面が自動的にリロードされます。\n・実行しますか？`)) {
-                // キャンセル時はラジオボタンの表示を元に戻す（見た目だけ）
-                const radios = document.getElementsByName('chat_mode_select');
-                for(let r of radios) { 
-                    if(r.value === chatServerMode) r.checked = true; 
-                }
-                return;
-            }
-
-            try {
-                // データベースの設定を書き換える（→ 手順1のコードが反応して全員切り替わる）
-                await setDoc(doc(db, "config", "server_settings"), { 
-                    chatMode: mode,
-                    updatedAt: serverTimestamp(),
-                    updatedBy: currentLoginId || "admin"
-                }, { merge: true });
-                
-                alert("設定を変更しました。\n数秒後に全員の画面が切り替わります。");
-            } catch(e) {
-                alert("設定の保存に失敗しました: " + e.message);
-                // 失敗したらラジオボタンを戻す
-                const radios = document.getElementsByName('chat_mode_select');
-                for(let r of radios) { 
-                    if(r.value === chatServerMode) r.checked = true; 
-                }
-            }
-        };
-
-window.addNewUser = async function() {
-    if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
-    const newId = document.getElementById("new-user-id").value.trim();
-    const newName = document.getElementById("new-user-name").value.trim();
-    if(!newId || !newName) { alert("IDと名前を入力してください"); return; }
-    try {
-        // ここで generateAdminCode() を呼ぶ
-        const newCode = generateAdminCode();
-        
-        const newUser = { 
-            name: newName, 
-            adminCode: newCode, // 管理コード保存
-            isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, 
-            canUnsend: true, needReload: false, canChat: true, canImage: true, lastDevice: "" 
-        };
-        await setDoc(doc(db, "config", "users"), { [newId]: newUser }, { merge: true });
-        
-        document.getElementById("new-user-id").value = ""; 
-        document.getElementById("new-user-name").value = "";
-        
-        // ログ送信 (IDは渡すが、logSystemEvent内でコードに変換される)
-        logSystemEvent("設定変更", `新規ユーザー追加: ${newName}`, currentLoginId || "admin");
-        alert(`ユーザーを追加しました。\n管理コード: ${newCode}`);
-    } catch(e) { alert("追加エラー: "+e.message); }
-};
-
-window.deleteUser = async function(id) {
-    if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
-    if (id === SUPER_ADMIN_ID) { alert("このユーザーは削除できません"); return; }
-    
-    // 変更点: 削除前にユーザー名を取得する
-    let userNameToDelete = id; // デフォルトはID
-    try {
-        const usersDocRef = doc(db, "config", "users");
-        const usersDocSnap = await getDoc(usersDocRef);
-        if (usersDocSnap.exists()) {
-            userNameToDelete = usersDocSnap.data()[id]?.name || id;
-        }
-    } catch (e) {
-        console.error("ユーザー名の取得に失敗", e);
-    }
-
-    if(!confirm(`ユーザー「${userNameToDelete}」を完全に削除しますか？`)) return;
-
-    try {
-        const usersDocRef = doc(db, "config", "users");
-        await updateDoc(usersDocRef, { [id]: deleteField() });
-        // 変更点: ログに名前を使用
-        logSystemEvent("設定変更", `ユーザー「${userNameToDelete}」を削除`, currentLoginId || "admin");
-    } catch(e) { alert("削除エラー: "+e.message); }
-};
-        
-        window.editUserName = async function(id, currentName) {
-            if (id === SUPER_ADMIN_ID && currentAdminSessionType !== 'super') { alert("変更できません"); return; }
-            const newName = prompt("新しい名前を入力:", currentName);
-            if(newName && newName !== currentName) { await setDoc(doc(db, "config", "users"), { [id]: { name: newName } }, { merge: true }); }
-        };
-        
-        window.forceReloadUser = async function(id) {
-            if (currentAdminSessionType !== 'super') { alert("権限がありません"); return; }
-            if(!confirm("このユーザーを強制的に再読み込みさせますか？")) return;
-            try { await setDoc(doc(db, "config", "users"), { [id]: { needReload: true } }, { merge: true }); alert("再読み込みコマンドを送信しました。"); } catch(e) { alert("送信失敗: "+e.message); }
-        };
-
-// 変更点: 第2引数に name を追加
-window.sendUserAlert = async function(id, name) {
-    const msg = prompt(`ユーザー「${name}」への通知メッセージを入力:`);
-    if(!msg) return;
-    try {
-        await setDoc(doc(db, "config", "users"), { [id]: { alertMessage: msg } }, { merge: true });
-        alert("送信しました");
-        // 変更点: ログに名前を使用
-        logSystemEvent("通知", `通知送信:「${name}」へ -> ${msg}`, currentLoginId || "admin");
-    } catch(e) { alert("送信失敗: " + e.message); }
-}
-        
-        window.addFilterWord = async function() {
-            const input = document.getElementById('new-filter-word');
-            const val = input.value.trim();
-            if(!val) return;
-            if(ngWords.includes(val)) { alert('既に追加されています'); return; }
-            try { await updateDoc(doc(db, "config", "filters"), { words: arrayUnion(val) }); input.value = ""; logSystemEvent("設定変更", `NGワード追加: ${val}`, currentLoginId || "admin"); } catch(e) { alert("追加エラー: " + e.message); }
-        };
-        
-        window.deleteFilterWord = async function(word) {
-            if(!confirm(`「${word}」をフィルターから削除しますか？`)) return;
-            try { await updateDoc(doc(db, "config", "filters"), { words: arrayRemove(word) }); logSystemEvent("設定変更", `NGワード削除: ${word}`, currentLoginId || "admin"); } catch(e) { alert("削除エラー: " + e.message); }
-        };
-        
-        function renderFilterList() {
-            const listDiv = document.getElementById('filter-word-list');
-            if(!listDiv) return;
-            listDiv.innerHTML = "";
-            ngWords.forEach(word => {
-                const el = document.createElement("div"); el.className = "filter-item";
-                el.innerHTML = `<span>${escapeHtml(word)}</span> <span class="del-btn" onclick="deleteFilterWord('${escapeHtml(word)}')">×</span>`;
-                listDiv.appendChild(el);
-            });
-        }
-
-// ★★★ ↓↓ この関数をまるごと追加してください ↓↓ ★★★
-        window.deleteSystemLogs = async function() {
-            if (!areIdsVisible) {
-                alert("この操作を実行する権限がありません。");
-                return;
-            }
-            if (!confirm("【警告】\nすべてのシステムログを完全に削除します。\nこの操作は元に戻せません。よろしいですか？")) {
-                return;
-            }
-            try {
-                const logsCollection = collection(db, "system_logs");
-                const snapshot = await getDocs(logsCollection);
-                const deletePromises = [];
-                snapshot.forEach(doc => {
-                    deletePromises.push(deleteDoc(doc.ref));
-                });
-                await Promise.all(deletePromises);
-                alert("すべてのシステムログを削除しました。");
-            } catch (e) {
-                alert("ログの削除中にエラーが発生しました: " + e.message);
-                console.error("ログ削除エラー:", e);
-            }
-        };
-        // ★★★ ↑↑ ここまでを追加 ↑↑ ★★★
-
-window.toggleIdVisibility = function() {
-    const deleteLogsBtn = document.getElementById('admin-delete-logs-btn');
-
-    if (areIdsVisible) {
-        areIdsVisible = false;
-        deleteLogsBtn.style.display = 'none';
-        renderAdminList();
-        renderSystemLogs();
-        return;
-    }
-    const pass = prompt("ID表示用パスワード:");
-    if (pass === "2012") {
-        areIdsVisible = true;
-        deleteLogsBtn.style.display = 'inline-block';
-        renderAdminList();
-        renderSystemLogs();
     } else {
-        alert("パスワードが違います");
-    }
-};
-
-async function renderAdminList() {
-    const listDiv = document.getElementById("admin-user-list"); 
-    listDiv.innerHTML = "読み込み中...";
-    onSnapshot(doc(db, "config", "users"), (docSnap) => {
-        listDiv.innerHTML = "";
-        const allUsers = docSnap.exists() ? docSnap.data() : {};
-        const sortedIds = Object.keys(allUsers).sort();
-        for (let id of sortedIds) {
-            const u = allUsers[id];
-            if (typeof u === 'boolean') { continue; }
-            const perm = { isAllowed: true, isAdmin: false, canChangeName: true, showNickname: true, canUnsend: true, canChat: true, canImage: true, ...u };
-            const isTargetProtected = (id === SUPER_ADMIN_ID || id === "admin");
-            const canEditProtected = (currentAdminSessionType === 'super');
-            const disabledAttr = (isTargetProtected && !canEditProtected) ? "disabled" : "";
-            const opacityStyle = (isTargetProtected && !canEditProtected) ? "opacity:0.5; cursor:not-allowed;" : "";
-            const clickAction = (isTargetProtected && !canEditProtected) ? `onclick="alert('変更できません。'); return false;"` : "";
-            const displayId = areIdsVisible ? id : "****";
-            
-            // 変更点: 通知(alert)ボタンに名前を渡すように修正
-            let actionBtns = "";
-            actionBtns += `<span class="alert-icon" onclick="sendUserAlert('${id}', '${escapeHtml(perm.name)}')" title="通知を送る">🔔</span> `;
-            if (currentAdminSessionType === 'super') {
-                 actionBtns += `<span class="refresh-icon" onclick="forceReloadUser('${id}')" title="強制リロード">🔄</span> `;
-                 if(!isTargetProtected) { actionBtns += `<span class="delete-icon" onclick="deleteUser('${id}')" title="削除">🗑️</span>`; }
-            }
-            
-            const row = document.createElement("div"); row.className = "user-control-row";
-
-            // 変更点: onchangeで呼び出す togglePerm に、第2引数として名前(perm.name)を追加
-            row.innerHTML = `
-                <div class="user-info-row"><div class="user-info-admin">${escapeHtml(perm.name)} (${displayId}) <span class="edit-icon" onclick="editUserName('${id}', '${escapeHtml(perm.name)}')">✏️</span>${actionBtns}<br><span class="device-info">端末: ${perm.lastDevice || "不明"}</span></div></div>
-                <div class="user-settings-row">
-                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ログイン</span><label class="toggle-switch"><input type="checkbox" ${perm.isAllowed ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'isAllowed', this)"><span class="slider"></span></label></div>
-                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">管理者</span><label class="toggle-switch"><input type="checkbox" ${perm.isAdmin ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'isAdmin', this)"><span class="slider"></span></label></div>
-                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">チャット</span><label class="toggle-switch"><input type="checkbox" ${perm.canChat ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canChat', this)"><span class="slider"></span></label></div>
-                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">画像</span><label class="toggle-switch"><input type="checkbox" ${perm.canImage ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canImage', this)"><span class="slider"></span></label></div>
-                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">名前変更</span><label class="toggle-switch"><input type="checkbox" ${perm.canChangeName ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canChangeName', this)"><span class="slider"></span></label></div>
-                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">ニックネーム</span><label class="toggle-switch"><input type="checkbox" ${perm.showNickname ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'showNickname', this)"><span class="slider"></span></label></div>
-                    <div class="setting-block" style="${opacityStyle}" ${clickAction}><span class="status-label">送信取消</span><label class="toggle-switch"><input type="checkbox" ${perm.canUnsend ? "checked" : ""} ${disabledAttr} onchange="togglePerm('${id}', '${escapeHtml(perm.name)}', 'canUnsend', this)"><span class="slider"></span></label></div>
-                </div>
-            `;
-            listDiv.appendChild(row);
-        }
-    });
-}
-
-// 変更点: 第2引数に name を追加
-window.togglePerm = async function(id, name, type, checkbox) {
-    const val = checkbox.checked;
-    if ((id === SUPER_ADMIN_ID || id === "admin") && currentAdminSessionType !== 'super') { checkbox.checked = !val; return; }
-    try {
-        await setDoc(doc(db, "config", "users"), { [id]: { [type]: val } }, { merge: true });
-        // 変更点: ログメッセージでIDの代わりに名前を使用
-        logSystemEvent("設定変更", `「${name}」の ${type} を ${val} に変更`, currentLoginId || "admin");
-    } catch(e) { alert("保存失敗: " + e.message); checkbox.checked = !val; }
-};
-
-function renderSystemLogs() {
-    const logDiv = document.getElementById("system-log-container");
-    logDiv.innerHTML = "ログ読み込み中...";
-    const q = query(collection(db, "system_logs"), orderBy("timestamp", "desc"), limit(50));
-    
-    onSnapshot(q, (snap) => {
-        logDiv.innerHTML = "";
-        snap.forEach(d => {
-            const data = d.data();
-            const date = data.timestamp ? data.timestamp.toDate().toLocaleString() : "---";
-            let typeClass = "log-info";
-            if(data.type === "ログイン") typeClass = "log-login"; if(data.type === "警告") typeClass = "log-warn";
-            if(data.type === "削除") typeClass = "log-del"; if(data.type === "設定変更") typeClass = "log-change";
-            if(data.type === "通知") typeClass = "log-alert";
-
-            // 保存されているデータが既に「名前 (Code: a123456)」になっているのでそのまま表示
-            const userInfo = data.user || "---";
-
-            const el = document.createElement("div"); el.className = "log-entry";
-            el.innerHTML = `<span class="log-time">[${date}]</span> <span class="log-type ${typeClass}">${escapeHtml(data.type)}</span> <span class="log-user">${escapeHtml(userInfo)}</span> : ${escapeHtml(data.message)}`;
-            logDiv.appendChild(el);
-        });
-    });
-}
-
-// ★修正: 管理者画面のチャットリスト描画（シンフリー対応版）
-        let adminChatInterval = null; // 管理画面用のポーリングタイマー
-
-        window.renderAdminChatList = function() {
-            const chatDiv = document.getElementById("admin-chat-list-container");
-            chatDiv.innerHTML = "<div style='text-align:center; padding:10px; color:#888;'>読み込み中...</div>";
-
-            // タイマーが残っていたらリセット
-            if(adminChatInterval) clearInterval(adminChatInterval);
-
-            if (chatServerMode === 'firebase') {
-                // --- Firebaseモード (既存の処理) ---
-                const q = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "desc"));
-                onSnapshot(q, (snap) => {
-                    chatDiv.innerHTML = "";
-                    if (snap.empty) { chatDiv.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>履歴なし</div>"; return; }
-                    snap.forEach((doc) => {
-                        const data = doc.data();
-                        const date = data.createdAt ? data.createdAt.toDate().toLocaleString() : "---";
-                        const content = data.text || (data.imageUrl ? "[画像]" : "[不明]");
-                        const el = document.createElement("div"); el.className = "admin-chat-item";
-                        // IDを表示させるために doc.id を利用
-                        el.innerHTML = `<div style="flex:1;"><div class="ac-info">${date} - ${escapeHtml(data.name)} (ID:${doc.id})</div><div class="ac-content">${escapeHtml(content)}</div></div><button class="ac-delete-btn" onclick="deleteChatMessage('${doc.id}')">削除</button>`;
-                        chatDiv.appendChild(el);
-                    });
+        // --- シンフリー(PHP)モード ---
+        // メッセージリスト（currentSymfreeList）をチェック
+        if (typeof currentSymfreeList === 'undefined' || !currentSymfreeList) return;
+        
+        currentSymfreeList.forEach(item => {
+            // 自分以外 かつ まだ既読リストに含まれていない場合
+            if (item.uid !== myUid) {
+                // readBy配列の中に自分のUIDが含まれているかチェック
+                const alreadyRead = item.readBy && item.readBy.some(sig => {
+                    const sigUid = sig.includes(':') ? sig.split(':')[0] : sig;
+                    return sigUid === myUid;
                 });
 
-            } else {
-                // --- シンフリー(PHP)モード (新規追加) ---
-                // 3秒ごとに更新
-                fetchAdminSymfree();
-                adminChatInterval = setInterval(fetchAdminSymfree, 3000);
-            }
-        };
-
-        // シンフリーのデータを取得して表示する関数
-        async function fetchAdminSymfree() {
-            const chatDiv = document.getElementById("admin-chat-list-container");
-            try {
-                const formData = new FormData();
-                formData.append('cmd', 'get_chat');
-                const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
-                const json = await res.json();
-
-                if (json.status === 'ok' && Array.isArray(json.data)) {
-                    chatDiv.innerHTML = "";
-                    const list = json.data;
-                    if (list.length === 0) {
-                        chatDiv.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>履歴なし</div>";
-                        return;
-                    }
-
-                    // 新しい順に並び替え
-                    list.reverse();
-
-                    list.forEach(item => {
-                        const d = new Date(item.created_at);
-                        const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-                        const content = item.text || (item.image_url ? `[画像] ${item.image_url}` : "[不明]");
-                        
-                        const el = document.createElement("div"); 
-                        el.className = "admin-chat-item";
-                        // 削除ボタンはPHP用のIDを渡す
-                        el.innerHTML = `<div style="flex:1;"><div class="ac-info">${dateStr} - ${escapeHtml(item.name)} (ID:${item.id})</div><div class="ac-content">${escapeHtml(content)}</div></div><button class="ac-delete-btn" onclick="deleteChatMessage('${item.id}')">削除</button>`;
-                        chatDiv.appendChild(el);
-                    });
+                if (!alreadyRead) {
+                    // サーバーに「読んだ」と通知する
+                    // ★注意: api.php 側に mark_read コマンドの実装が必要です
+                    const formData = new FormData();
+                    formData.append('cmd', 'mark_read');
+                    formData.append('id', item.id);
+                    formData.append('uid', myUid);
+                    formData.append('name', myNameStr);
+                    
+                    // 通信は投げっぱなしにする（待たない）
+                    fetch(PHP_IMAGE_API, { method: 'POST', body: formData }).catch(()=>{});
+                    
+                    // ローカル上では既読にしたことにしておく（連送防止）
+                    item.readBy.push(readSignature);
                 }
-            } catch(e) {
-                console.error("Admin fetch error:", e);
-                // エラー時は更新しない（チラつき防止）
-            }
-        }
-
-        // ★修正: 管理者用削除関数（シンフリー対応版）
-        window.deleteChatMessage = async function(docId) {
-            if(!confirm("このメッセージを強制削除しますか？\n(復元できません)")) return;
-
-            if (chatServerMode === 'firebase') {
-                // Firebase削除
-                try { await deleteDoc(doc(db, "fake_loilo_v2", docId)); } catch(e) { alert("削除失敗: " + e.message); }
-            } else {
-                // シンフリー(PHP)削除
-                const formData = new FormData();
-                formData.append('cmd', 'delete_chat');
-                formData.append('id', docId);
-                formData.append('force', 'true'); // ★強制削除フラグをつける
-
-                try { 
-                    const res = await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
-                    const json = await res.json();
-                    if(json.status === 'ok') {
-                        // 成功したらリストを即時更新
-                        fetchAdminSymfree();
-                        alert("削除しました");
-                    } else {
-                        alert("削除失敗: " + json.message);
-                    }
-                } catch(e) { alert("通信エラー: " + e.message); }
-            }
-        };
-
-// ×ボタンと背景クリックのバグを修正した最終版です
-        const chatOverlay = document.getElementById("chat-overlay");
-        const msgList = document.getElementById("msg-list");
-        const myUid = localStorage.getItem('loilo_v2_uid') || Math.random().toString(36).substring(7); localStorage.setItem('loilo_v2_uid', myUid);
-
-        // 「提出」ボタンをクリックした時の処理
-        document.getElementById("toggle-chat-btn").addEventListener("click", (e) => { 
-            e.stopPropagation(); // 背景のクリックイベントに伝わらないようにする
-            toggleChat(); 
-        });
-
-        // 提出箱の「×」ボタンをクリックした時の処理
-        document.getElementById("close-chat-x").addEventListener("click", (e) => { 
-            e.stopPropagation(); // 背景のクリックイベントに伝わらないようにする
-            toggleChat(false); // falseを渡して「確実に閉じる」
-        });
-
-        // ★追加：提出箱の中身（白い部分）をクリックしても閉じないようにする
-        chatOverlay.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
-
-        // ★追加：紺色の背景（view-edit）をクリックしたらチャットを閉じる
-        document.getElementById("view-edit").addEventListener("click", (e) => {
-            // チャットが開いている時だけ閉じる
-            if (chatOverlay.style.display === "flex") {
-                toggleChat(false);
             }
         });
+    }
+}
 
-        /* --- toggleChat関数（バグ修正済・最終版） --- */
-        window.toggleChat = function(force) {
-            let isCurrentlyVisible = (chatOverlay.style.display === "flex");
-            
-            // forceが指定されていればその通りに、なければ反転させる
-            let willBeVisible = (force !== undefined) ? force : !isCurrentlyVisible;
-
-            chatOverlay.style.display = willBeVisible ? "flex" : "none";
-
-            if (willBeVisible) {
-                // 【開いた時】
-                checkAndMarkRead(); // 既読処理
-                setTimeout(() => {
-                    msgList.scrollTop = msgList.scrollHeight; // 最新へスクロール
-                }, 10);
-            } else {
-                // 【閉じた時】
-                window.cancelReply(); // 返信モード解除
-            }
-        };
-
-        window.cancelReply = function() { replyTargetId = null; replyStatusBar.style.display = "none"; }
-
-// ★修正: 画像アップロードのエラー検知を追加した送信関数
+// --- 送信関数の修正版 (スクロール修正込み) ---
 async function sendPayload(text="", file=null) {
-    // 1. バリデーション
     if(!text && !file) return;
     if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
     if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
     
-    // 2. テキストのNGワード処理
     let safeText = text;
     if(safeText) { 
         ngWords.forEach(badWord => { 
@@ -1972,62 +1086,49 @@ async function sendPayload(text="", file=null) {
     
     let imageUrl = null;
     
-    // 3. 画像がある場合の処理
+    // 画像アップロード
     if(file) {
-        // 画像をBase64に変換
         const base64 = await new Promise(resolve => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.readAsDataURL(file);
         });
 
-        // シンフリーサーバーへアップロード
         try {
-            // ローディング表示（任意）
             sendBtn.textContent = "送信中...";
             sendBtn.disabled = true;
 
             const res = await fetch(PHP_IMAGE_API, {
                 method: "POST",
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    cmd: "upload_image", 
-                    payload: { image: base64 } 
-                })
+                body: JSON.stringify({ cmd: "upload_image", payload: { image: base64 } })
             });
             const resData = await res.json();
             
             if(resData.status === "ok") {
-                imageUrl = resData.url; // 成功！URL取得
+                imageUrl = resData.url;
             } else {
-                alert("画像のアップロードに失敗しました。\nサーバーのuploadsフォルダの権限を確認してください。\nエラー: " + (resData.message || "不明"));
+                alert("画像のアップロードに失敗: " + (resData.message || "不明"));
                 sendBtn.textContent = "送信";
                 sendBtn.disabled = false;
-                return; // 中断
+                return;
             }
         } catch(e) {
-            alert("画像サーバーへの通信に失敗しました: " + e.message);
+            alert("通信エラー: " + e.message);
             sendBtn.textContent = "送信";
             sendBtn.disabled = false;
             return;
         }
     }
 
-    // 4. 送信者名の決定
-    let senderName = currentUserData ? currentUserData.name : "Unknown";
-    if (currentUserData && currentUserData.showNickname && myName) { 
-        senderName = `${myName}・${currentUserData.name}`; 
-    }
+    let senderName = getMyDisplayName();
     
-    // 5. チャットデータ本体の送信
     try {
         if (chatServerMode === 'firebase') {
-            // Firebaseへ送信
             const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
             if(replyTargetId) payload.replyTo = replyTargetId;
             await addDoc(collection(db, "fake_loilo_v2"), payload);
         } else {
-            // シンフリー(PHP)へ送信
             const formData = new FormData();
             formData.append('cmd', 'save_chat');
             formData.append('text', safeText);
@@ -2038,7 +1139,6 @@ async function sendPayload(text="", file=null) {
             
             await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
             
-            // すぐに画面を更新
             if(typeof fetchSymfreeMessages === 'function') {
                 fetchSymfreeMessages();
             }
@@ -2046,35 +1146,36 @@ async function sendPayload(text="", file=null) {
     } catch(e) {
         alert("送信エラー: " + e.message);
     } finally {
-        // 後処理
         chatInput.value = ""; 
         window.cancelReply();
         sendBtn.textContent = "送信";
         sendBtn.disabled = false;
-        // ファイル選択をリセット（同じ画像を連続で送れるようにする）
         document.getElementById("file-input").value = ""; 
+
+        // ★自分が送信した直後は、必ず一番下にスクロールする
+        setTimeout(() => {
+             msgList.scrollTop = msgList.scrollHeight;
+        }, 200);
     }
 }
 
-        sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
-        chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
-        document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
-        // sendPayload関数の finally ブロック内などに追記
-setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 100);
+sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
+chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
+document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
 
+
+// --- 描画関数の修正版 (スクロール制御 + 既読表示) ---
 function renderChatMessages(messageList) {
-    // ★修正1: 更新処理の前に「現在一番下を見ているか？」を判定して記憶しておく
-    // (スクロール位置 + 画面の高さ が 全体の高さ に近ければ一番下とみなす)
+    // 現在一番下にいるかを判定 (誤差50px許容)
     const isAtBottom = (msgList.scrollHeight - msgList.scrollTop - msgList.clientHeight) < 50;
 
-    const currentList = messageList; 
     msgList.innerHTML = "";
     const idMap = {};
     const userMap = {};
 
-    // IDマップ作成
     messageList.forEach(d => {
         idMap[d.id] = d.text || "画像";
+        // UIDと名前の対応表を作る
         if(d.uid && d.name) {
             const parts = d.name.split('・');
             userMap[d.uid] = parts.length > 1 ? parts[1] : d.name;
@@ -2110,12 +1211,17 @@ function renderChatMessages(messageList) {
         card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)} <span style="font-size:0.75rem; color:#888; font-weight:normal; margin-left:8px;">${dateStr}</span></div><div class="msg-content">${html}</div>`;
         wrapper.appendChild(card);
         
-        // 既読表示
-        if(chatServerMode === 'firebase' && data.uid === myUid && data.readBy && data.readBy.length > 0) {
+        // --- 既読表示 (Firebase / Symfree 共通ロジック) ---
+        if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
             const read = document.createElement("div"); 
             read.className = "read-label"; 
             const count = data.readBy.length;
-            const readerNames = data.readBy.map(entry => entry.includes(':') ? entry.split(':')[1] : (userMap[entry]||"不明")).join("、");
+            // 名前リストを生成
+            const readerNames = data.readBy.map(entry => {
+                if(entry.includes(':')) return entry.split(':')[1];
+                return userMap[entry.split(':')[0]] || "不明";
+            }).join("、");
+            
             read.textContent = "既読 " + count;
             read.title = "既読: " + readerNames;
             wrapper.appendChild(read);
@@ -2123,7 +1229,7 @@ function renderChatMessages(messageList) {
         msgList.appendChild(wrapper);
     });
 
-    // ★修正2: 「元々一番下にいた」かつ「チャットが開いている」場合のみスクロールする
+    // 元々一番下にいた場合のみ、スクロールを最下部へ追従させる
     if (isAtBottom && document.getElementById("chat-overlay").style.display === "flex") {
         msgList.scrollTop = msgList.scrollHeight;
     }
@@ -2134,7 +1240,7 @@ function startChatSync() {
     if (chatServerMode === 'firebase') {
         const qMsg = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
         onSnapshot(qMsg, (snap) => {
-            currentChatDocs = snap; // 既読処理用に保存
+            currentChatDocs = snap; 
             const list = [];
             snap.forEach(d => {
                 const dt = d.data();
@@ -2152,29 +1258,39 @@ function startChatSync() {
     }
 }
 
-// PHPサーバーから取得する関数 (改良版)
+// --- シンフリー取得関数の修正版 (既読データ解析追加) ---
+let currentSymfreeList = []; // グローバル変数として保持
+
 async function fetchSymfreeMessages() {
     try {
         const formData = new FormData();
         formData.append('cmd', 'get_chat');
-        // キャッシュ回避のためのタイムスタンプを追加
         const res = await fetch(PHP_IMAGE_API + '?t=' + new Date().getTime(), { method: 'POST', body: formData });
         
-        if (!res.ok) return; // 通信エラー時は無視
+        if (!res.ok) return;
 
         const json = await res.json();
         if (json.status === 'ok' && Array.isArray(json.data)) {
             const list = [];
             json.data.forEach(item => {
-                // 日付データの安全な変換
                 let d = new Date();
                 try {
                     if(item.created_at) {
                         d = new Date(item.created_at);
-                        // 無効な日付なら現在時刻にする
                         if(isNaN(d.getTime())) d = new Date();
                     }
                 } catch(e) { d = new Date(); }
+
+                // サーバーからの read_by 文字列を配列に変換する処理
+                // (サーバーがカンマ区切り文字列 "uid:name,uid2:name2" で返してくると仮定)
+                let readByArr = [];
+                if (item.read_by) {
+                    if (Array.isArray(item.read_by)) {
+                        readByArr = item.read_by;
+                    } else if (typeof item.read_by === 'string' && item.read_by.trim() !== "") {
+                        readByArr = item.read_by.split(',');
+                    }
+                }
 
                 list.push({
                     id: item.id,
@@ -2184,13 +1300,17 @@ async function fetchSymfreeMessages() {
                     uid: item.uid,
                     replyTo: item.reply_to,
                     createdAt: d,
-                    readBy: []
+                    readBy: readByArr // 解析済みの配列をセット
                 });
             });
+            
+            currentSymfreeList = list; // 既読処理用に保存
             renderChatMessages(list);
+            
+            // 画面が開いていれば既読をつける
+            if (document.getElementById("chat-overlay").style.display === "flex") checkAndMarkRead();
         }
     } catch(e) { 
-        // エラーが出てもコンソールに出すだけで、処理を止めない
         console.warn("PHP fetch warning:", e); 
     }
 }
@@ -2644,6 +1764,7 @@ window.playYoutubeVideo = function() {
     </script>
 </body>
 </html>
+
 
 
 
