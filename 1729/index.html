@@ -1930,37 +1930,32 @@ function renderSystemLogs() {
             }
         });
 
-        /* --- toggleChat関数（バグ修正済・最終版） --- */
-        window.toggleChat = function(force) {
-            let isCurrentlyVisible = (chatOverlay.style.display === "flex");
-            
-            // forceが指定されていればその通りに、なければ反転させる
-            let willBeVisible = (force !== undefined) ? force : !isCurrentlyVisible;
+/* --- toggleChat関数 --- */
+window.toggleChat = function(force) {
+    let isCurrentlyVisible = (chatOverlay.style.display === "flex");
+    let willBeVisible = (force !== undefined) ? force : !isCurrentlyVisible;
 
-            chatOverlay.style.display = willBeVisible ? "flex" : "none";
+    chatOverlay.style.display = willBeVisible ? "flex" : "none";
 
-            if (willBeVisible) {
-                // 【開いた時】
-                checkAndMarkRead(); // 既読処理
-                setTimeout(() => {
-                    msgList.scrollTop = msgList.scrollHeight; // 最新へスクロール
-                }, 10);
-            } else {
-                // 【閉じた時】
-                window.cancelReply(); // 返信モード解除
-            }
-        };
+    if (willBeVisible) {
+        // 【開いた時】
+        checkAndMarkRead(); // 既読処理
+        // ★開いた時は強制的に一番下へスクロール
+        setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 10);
+    } else {
+        // 【閉じた時】
+        window.cancelReply(); 
+    }
+};
 
         window.cancelReply = function() { replyTargetId = null; replyStatusBar.style.display = "none"; }
 
-// ★修正: 画像アップロードのエラー検知を追加した送信関数
+// --- 送信関数 ---
 async function sendPayload(text="", file=null) {
-    // 1. バリデーション
     if(!text && !file) return;
     if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
     if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
     
-    // 2. テキストのNGワード処理
     let safeText = text;
     if(safeText) { 
         ngWords.forEach(badWord => { 
@@ -1972,62 +1967,49 @@ async function sendPayload(text="", file=null) {
     
     let imageUrl = null;
     
-    // 3. 画像がある場合の処理
+    // 画像アップロード
     if(file) {
-        // 画像をBase64に変換
         const base64 = await new Promise(resolve => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.readAsDataURL(file);
         });
 
-        // シンフリーサーバーへアップロード
         try {
-            // ローディング表示（任意）
             sendBtn.textContent = "送信中...";
             sendBtn.disabled = true;
 
             const res = await fetch(PHP_IMAGE_API, {
                 method: "POST",
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    cmd: "upload_image", 
-                    payload: { image: base64 } 
-                })
+                body: JSON.stringify({ cmd: "upload_image", payload: { image: base64 } })
             });
             const resData = await res.json();
             
             if(resData.status === "ok") {
-                imageUrl = resData.url; // 成功！URL取得
+                imageUrl = resData.url;
             } else {
-                alert("画像のアップロードに失敗しました。\nサーバーのuploadsフォルダの権限を確認してください。\nエラー: " + (resData.message || "不明"));
+                alert("画像のアップロードに失敗: " + (resData.message || "不明"));
                 sendBtn.textContent = "送信";
                 sendBtn.disabled = false;
-                return; // 中断
+                return;
             }
         } catch(e) {
-            alert("画像サーバーへの通信に失敗しました: " + e.message);
+            alert("通信エラー: " + e.message);
             sendBtn.textContent = "送信";
             sendBtn.disabled = false;
             return;
         }
     }
 
-    // 4. 送信者名の決定
-    let senderName = currentUserData ? currentUserData.name : "Unknown";
-    if (currentUserData && currentUserData.showNickname && myName) { 
-        senderName = `${myName}・${currentUserData.name}`; 
-    }
+    let senderName = getMyDisplayName();
     
-    // 5. チャットデータ本体の送信
     try {
         if (chatServerMode === 'firebase') {
-            // Firebaseへ送信
             const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
             if(replyTargetId) payload.replyTo = replyTargetId;
             await addDoc(collection(db, "fake_loilo_v2"), payload);
         } else {
-            // シンフリー(PHP)へ送信
             const formData = new FormData();
             formData.append('cmd', 'save_chat');
             formData.append('text', safeText);
@@ -2038,7 +2020,6 @@ async function sendPayload(text="", file=null) {
             
             await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
             
-            // すぐに画面を更新
             if(typeof fetchSymfreeMessages === 'function') {
                 fetchSymfreeMessages();
             }
@@ -2046,13 +2027,16 @@ async function sendPayload(text="", file=null) {
     } catch(e) {
         alert("送信エラー: " + e.message);
     } finally {
-        // 後処理
         chatInput.value = ""; 
         window.cancelReply();
         sendBtn.textContent = "送信";
         sendBtn.disabled = false;
-        // ファイル選択をリセット（同じ画像を連続で送れるようにする）
         document.getElementById("file-input").value = ""; 
+
+        // ★自分が送信した直後は、強制的に一番下にスクロール
+        setTimeout(() => {
+             msgList.scrollTop = msgList.scrollHeight;
+        }, 100);
     }
 }
 
@@ -2121,6 +2105,9 @@ function renderChatMessages(messageList) {
         msgList.appendChild(wrapper);
     });
 
+        if (isAtBottom && document.getElementById("chat-overlay").style.display === "flex") {
+        setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 10);
+        }
 }
 
 // 同期開始関数
