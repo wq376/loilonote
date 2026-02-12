@@ -2059,12 +2059,15 @@ async function sendPayload(text="", file=null) {
         sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
         chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
         document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
+        // sendPayload関数の finally ブロック内などに追記
+setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 100);
 
-// ★ここから新しい描画ロジック
 function renderChatMessages(messageList) {
-    // 既読データを保持するための変数 (Firebaseモード時のみ使用)
+    // ★修正1: 更新処理の前に「現在一番下を見ているか？」を判定して記憶しておく
+    // (スクロール位置 + 画面の高さ が 全体の高さ に近ければ一番下とみなす)
+    const isAtBottom = (msgList.scrollHeight - msgList.scrollTop - msgList.clientHeight) < 50;
+
     const currentList = messageList; 
-    
     msgList.innerHTML = "";
     const idMap = {};
     const userMap = {};
@@ -2092,7 +2095,6 @@ function renderChatMessages(messageList) {
         if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
         if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
         
-        // 日時の計算 (Dateオブジェクトか確認)
         let dateStr = "";
         let diff = 999;
         if (data.createdAt) {
@@ -2108,7 +2110,7 @@ function renderChatMessages(messageList) {
         card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)} <span style="font-size:0.75rem; color:#888; font-weight:normal; margin-left:8px;">${dateStr}</span></div><div class="msg-content">${html}</div>`;
         wrapper.appendChild(card);
         
-        // 既読表示 (Firebaseモードのみ)
+        // 既読表示
         if(chatServerMode === 'firebase' && data.uid === myUid && data.readBy && data.readBy.length > 0) {
             const read = document.createElement("div"); 
             read.className = "read-label"; 
@@ -2121,7 +2123,8 @@ function renderChatMessages(messageList) {
         msgList.appendChild(wrapper);
     });
 
-    if (document.getElementById("chat-overlay").style.display === "flex") {
+    // ★修正2: 「元々一番下にいた」かつ「チャットが開いている」場合のみスクロールする
+    if (isAtBottom && document.getElementById("chat-overlay").style.display === "flex") {
         msgList.scrollTop = msgList.scrollHeight;
     }
 }
@@ -2641,5 +2644,6 @@ window.playYoutubeVideo = function() {
     </script>
 </body>
 </html>
+
 
 
