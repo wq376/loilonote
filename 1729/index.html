@@ -2121,9 +2121,6 @@ function renderChatMessages(messageList) {
         msgList.appendChild(wrapper);
     });
 
-    if (document.getElementById("chat-overlay").style.display === "flex") {
-        msgList.scrollTop = msgList.scrollHeight;
-    }
 }
 
 // 同期開始関数
@@ -2641,4 +2638,3 @@ window.playYoutubeVideo = function() {
     </script>
 </body>
 </html>
-
