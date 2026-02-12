@@ -1007,316 +1007,34 @@ function getMyDisplayName() {
 }
 
 /* --- 既読処理関数の追加 --- */
-// --- ▼▼▼ ここから下を既存のコードと置き換えてください ▼▼▼ ---
-
-/* --- 既読処理関数の修正版 (両モード対応) --- */
 function checkAndMarkRead() {
-    // 提出箱が開いていないなら何もしない
-    if (document.getElementById("chat-overlay").style.display !== "flex") return;
-
+    if (!currentChatDocs) return;
     const myNameStr = getMyDisplayName();
-    const readSignature = myUid + ":" + myNameStr; // "UID:名前" の形式
+    // 既読データとして「UID:名前」という形式で保存する（これで発言してなくても名前がわかる）
+    const readSignature = myUid + ":" + myNameStr;
 
-    if (chatServerMode === 'firebase') {
-        // --- Firebaseモード ---
-        if (!currentChatDocs) return;
-        currentChatDocs.forEach(docSnap => {
-            const data = docSnap.data();
-            const docId = docSnap.id;
-            if (data.uid === myUid) return; // 自分はスキップ
-
-            const isRead = data.readBy && data.readBy.some(sig => {
-                const sigUid = sig.includes(':') ? sig.split(':')[0] : sig;
-                return sigUid === myUid;
-            });
-
-            if (!isRead) {
-                updateDoc(doc(db, "fake_loilo_v2", docId), {
-                    readBy: arrayUnion(readSignature)
-                });
-            }
-        });
-    } else {
-        // --- シンフリー(PHP)モード ---
-        // メッセージリスト（currentSymfreeList）をチェック
-        if (typeof currentSymfreeList === 'undefined' || !currentSymfreeList) return;
+    currentChatDocs.forEach(docSnap => {
+        const data = docSnap.data();
+        const docId = docSnap.id;
         
-        currentSymfreeList.forEach(item => {
-            // 自分以外 かつ まだ既読リストに含まれていない場合
-            if (item.uid !== myUid) {
-                // readBy配列の中に自分のUIDが含まれているかチェック
-                const alreadyRead = item.readBy && item.readBy.some(sig => {
-                    const sigUid = sig.includes(':') ? sig.split(':')[0] : sig;
-                    return sigUid === myUid;
-                });
+        // 自分のメッセージには既読をつけない
+        if (data.uid === myUid) return;
 
-                if (!alreadyRead) {
-                    // サーバーに「読んだ」と通知する
-                    // ★注意: api.php 側に mark_read コマンドの実装が必要です
-                    const formData = new FormData();
-                    formData.append('cmd', 'mark_read');
-                    formData.append('id', item.id);
-                    formData.append('uid', myUid);
-                    formData.append('name', myNameStr);
-                    
-                    // 通信は投げっぱなしにする（待たない）
-                    fetch(PHP_IMAGE_API, { method: 'POST', body: formData }).catch(()=>{});
-                    
-                    // ローカル上では既読にしたことにしておく（連送防止）
-                    item.readBy.push(readSignature);
-                }
-            }
-        });
-    }
-}
-
-// --- 送信関数の修正版 (スクロール修正込み) ---
-async function sendPayload(text="", file=null) {
-    if(!text && !file) return;
-    if (myPermissions.canChat === false && text) { alert("テキスト送信は禁止されています"); return; }
-    if (myPermissions.canImage === false && file) { alert("画像送信は禁止されています"); return; }
-    
-    let safeText = text;
-    if(safeText) { 
-        ngWords.forEach(badWord => { 
-            if(badWord && safeText.includes(badWord)) { 
-                safeText = safeText.split(badWord).join("*".repeat(badWord.length)); 
-            } 
-        }); 
-    }
-    
-    let imageUrl = null;
-    
-    // 画像アップロード
-    if(file) {
-        const base64 = await new Promise(resolve => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
+        // 既に既読かチェック
+        // (古い形式の"UID"だけの場合と、新しい形式の"UID:名前"の両方に対応)
+        const isRead = data.readBy && data.readBy.some(sig => {
+            const sigUid = sig.includes(':') ? sig.split(':')[0] : sig;
+            return sigUid === myUid;
         });
 
-        try {
-            sendBtn.textContent = "送信中...";
-            sendBtn.disabled = true;
-
-            const res = await fetch(PHP_IMAGE_API, {
-                method: "POST",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cmd: "upload_image", payload: { image: base64 } })
+        // まだ既読でなければ更新
+        if (!isRead) {
+            updateDoc(doc(db, "fake_loilo_v2", docId), {
+                readBy: arrayUnion(readSignature)
             });
-            const resData = await res.json();
-            
-            if(resData.status === "ok") {
-                imageUrl = resData.url;
-            } else {
-                alert("画像のアップロードに失敗: " + (resData.message || "不明"));
-                sendBtn.textContent = "送信";
-                sendBtn.disabled = false;
-                return;
-            }
-        } catch(e) {
-            alert("通信エラー: " + e.message);
-            sendBtn.textContent = "送信";
-            sendBtn.disabled = false;
-            return;
-        }
-    }
-
-    let senderName = getMyDisplayName();
-    
-    try {
-        if (chatServerMode === 'firebase') {
-            const payload = { text: safeText, imageUrl, name: senderName, uid: myUid, createdAt: serverTimestamp(), readBy: [] };
-            if(replyTargetId) payload.replyTo = replyTargetId;
-            await addDoc(collection(db, "fake_loilo_v2"), payload);
-        } else {
-            const formData = new FormData();
-            formData.append('cmd', 'save_chat');
-            formData.append('text', safeText);
-            if(imageUrl) formData.append('image_url', imageUrl);
-            formData.append('name', senderName);
-            formData.append('uid', myUid);
-            if(replyTargetId) formData.append('reply_to', replyTargetId);
-            
-            await fetch(PHP_IMAGE_API, { method: 'POST', body: formData });
-            
-            if(typeof fetchSymfreeMessages === 'function') {
-                fetchSymfreeMessages();
-            }
-        }
-    } catch(e) {
-        alert("送信エラー: " + e.message);
-    } finally {
-        chatInput.value = ""; 
-        window.cancelReply();
-        sendBtn.textContent = "送信";
-        sendBtn.disabled = false;
-        document.getElementById("file-input").value = ""; 
-
-        // ★自分が送信した直後は、必ず一番下にスクロールする
-        setTimeout(() => {
-             msgList.scrollTop = msgList.scrollHeight;
-        }, 200);
-    }
-}
-
-sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
-chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
-document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
-
-
-// --- 描画関数の修正版 (スクロール制御 + 既読表示) ---
-function renderChatMessages(messageList) {
-    // 現在一番下にいるかを判定 (誤差50px許容)
-    const isAtBottom = (msgList.scrollHeight - msgList.scrollTop - msgList.clientHeight) < 50;
-
-    msgList.innerHTML = "";
-    const idMap = {};
-    const userMap = {};
-
-    messageList.forEach(d => {
-        idMap[d.id] = d.text || "画像";
-        // UIDと名前の対応表を作る
-        if(d.uid && d.name) {
-            const parts = d.name.split('・');
-            userMap[d.uid] = parts.length > 1 ? parts[1] : d.name;
         }
     });
-
-    messageList.forEach(data => {
-        const docId = data.id;
-        const wrapper = document.createElement("div"); 
-        wrapper.className = "msg-wrapper " + (data.uid===myUid?"wrapper-mine":"wrapper-other");
-        const card = document.createElement("div"); 
-        card.className = "msg-card " + (data.uid===myUid?"msg-mine":"msg-other");
-        card.id = "msg-"+docId;
-        card.addEventListener("dblclick", (e)=>{ e.stopPropagation(); replyTargetId=docId; replyTargetText.textContent="返信先: "+(data.text||"画像"); replyStatusBar.style.display="flex"; chatInput.focus(); });
-        
-        let html = "";
-        if(data.replyTo && idMap[data.replyTo]) html += `<div class="reply-ref" onclick="document.getElementById('msg-${data.replyTo}').scrollIntoView({behavior:'smooth'});">↩ ${escapeHtml(idMap[data.replyTo])}</div>`;
-        if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
-        if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
-        
-        let dateStr = "";
-        let diff = 999;
-        if (data.createdAt) {
-            const d = new Date(data.createdAt); 
-            dateStr = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-            diff = (new Date() - d) / 1000 / 60;
-        }
-
-        if (data.uid === myUid && diff <= 5 && myPermissions.canUnsend) { 
-            html += `<button class="msg-unsend-btn" onclick="unsendMessage('${docId}')">×</button>`; 
-        }
-
-        card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)} <span style="font-size:0.75rem; color:#888; font-weight:normal; margin-left:8px;">${dateStr}</span></div><div class="msg-content">${html}</div>`;
-        wrapper.appendChild(card);
-        
-        // --- 既読表示 (Firebase / Symfree 共通ロジック) ---
-        if(data.uid === myUid && data.readBy && data.readBy.length > 0) {
-            const read = document.createElement("div"); 
-            read.className = "read-label"; 
-            const count = data.readBy.length;
-            // 名前リストを生成
-            const readerNames = data.readBy.map(entry => {
-                if(entry.includes(':')) return entry.split(':')[1];
-                return userMap[entry.split(':')[0]] || "不明";
-            }).join("、");
-            
-            read.textContent = "既読 " + count;
-            read.title = "既読: " + readerNames;
-            wrapper.appendChild(read);
-        }
-        msgList.appendChild(wrapper);
-    });
-
-    // 元々一番下にいた場合のみ、スクロールを最下部へ追従させる
-    if (isAtBottom && document.getElementById("chat-overlay").style.display === "flex") {
-        msgList.scrollTop = msgList.scrollHeight;
-    }
 }
-
-// 同期開始関数
-function startChatSync() {
-    if (chatServerMode === 'firebase') {
-        const qMsg = query(collection(db, "fake_loilo_v2"), orderBy("createdAt", "asc"));
-        onSnapshot(qMsg, (snap) => {
-            currentChatDocs = snap; 
-            const list = [];
-            snap.forEach(d => {
-                const dt = d.data();
-                dt.id = d.id;
-                dt.createdAt = dt.createdAt ? dt.createdAt.toDate() : new Date();
-                list.push(dt);
-            });
-            renderChatMessages(list);
-            if (document.getElementById("chat-overlay").style.display === "flex") checkAndMarkRead();
-        });
-    } else {
-        if(symfreePollingInterval) clearInterval(symfreePollingInterval);
-        fetchSymfreeMessages();
-        symfreePollingInterval = setInterval(fetchSymfreeMessages, 2000);
-    }
-}
-
-// --- シンフリー取得関数の修正版 (既読データ解析追加) ---
-let currentSymfreeList = []; // グローバル変数として保持
-
-async function fetchSymfreeMessages() {
-    try {
-        const formData = new FormData();
-        formData.append('cmd', 'get_chat');
-        const res = await fetch(PHP_IMAGE_API + '?t=' + new Date().getTime(), { method: 'POST', body: formData });
-        
-        if (!res.ok) return;
-
-        const json = await res.json();
-        if (json.status === 'ok' && Array.isArray(json.data)) {
-            const list = [];
-            json.data.forEach(item => {
-                let d = new Date();
-                try {
-                    if(item.created_at) {
-                        d = new Date(item.created_at);
-                        if(isNaN(d.getTime())) d = new Date();
-                    }
-                } catch(e) { d = new Date(); }
-
-                // サーバーからの read_by 文字列を配列に変換する処理
-                // (サーバーがカンマ区切り文字列 "uid:name,uid2:name2" で返してくると仮定)
-                let readByArr = [];
-                if (item.read_by) {
-                    if (Array.isArray(item.read_by)) {
-                        readByArr = item.read_by;
-                    } else if (typeof item.read_by === 'string' && item.read_by.trim() !== "") {
-                        readByArr = item.read_by.split(',');
-                    }
-                }
-
-                list.push({
-                    id: item.id,
-                    text: item.text,
-                    imageUrl: item.image_url,
-                    name: item.name,
-                    uid: item.uid,
-                    replyTo: item.reply_to,
-                    createdAt: d,
-                    readBy: readByArr // 解析済みの配列をセット
-                });
-            });
-            
-            currentSymfreeList = list; // 既読処理用に保存
-            renderChatMessages(list);
-            
-            // 画面が開いていれば既読をつける
-            if (document.getElementById("chat-overlay").style.display === "flex") checkAndMarkRead();
-        }
-    } catch(e) { 
-        console.warn("PHP fetch warning:", e); 
-    }
-}
-
-startChatSync(); // 実行
 
 // 3. お知らせ同期（Firebaseからデータを取ってきて画面に表示する）
         onSnapshot(doc(db, "config", "updates"), (snap) => {
@@ -2341,15 +2059,12 @@ async function sendPayload(text="", file=null) {
         sendBtn.addEventListener("click", ()=>sendPayload(chatInput.value));
         chatInput.addEventListener("keypress", (e)=>{if(e.key==="Enter")sendPayload(chatInput.value)});
         document.getElementById("file-input").addEventListener("change", (e)=>sendPayload("", e.target.files[0]));
-        // sendPayload関数の finally ブロック内などに追記
-setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 100);
 
+// ★ここから新しい描画ロジック
 function renderChatMessages(messageList) {
-    // ★修正1: 更新処理の前に「現在一番下を見ているか？」を判定して記憶しておく
-    // (スクロール位置 + 画面の高さ が 全体の高さ に近ければ一番下とみなす)
-    const isAtBottom = (msgList.scrollHeight - msgList.scrollTop - msgList.clientHeight) < 50;
-
+    // 既読データを保持するための変数 (Firebaseモード時のみ使用)
     const currentList = messageList; 
+    
     msgList.innerHTML = "";
     const idMap = {};
     const userMap = {};
@@ -2377,6 +2092,7 @@ function renderChatMessages(messageList) {
         if(data.imageUrl) html += `<img src="${data.imageUrl}" onclick="window.open(this.src)">`;
         if(data.text) html += `<div>${escapeHtml(data.text)}</div>`;
         
+        // 日時の計算 (Dateオブジェクトか確認)
         let dateStr = "";
         let diff = 999;
         if (data.createdAt) {
@@ -2392,7 +2108,7 @@ function renderChatMessages(messageList) {
         card.innerHTML = `<div class="msg-name">${escapeHtml(data.name)} <span style="font-size:0.75rem; color:#888; font-weight:normal; margin-left:8px;">${dateStr}</span></div><div class="msg-content">${html}</div>`;
         wrapper.appendChild(card);
         
-        // 既読表示
+        // 既読表示 (Firebaseモードのみ)
         if(chatServerMode === 'firebase' && data.uid === myUid && data.readBy && data.readBy.length > 0) {
             const read = document.createElement("div"); 
             read.className = "read-label"; 
@@ -2405,8 +2121,7 @@ function renderChatMessages(messageList) {
         msgList.appendChild(wrapper);
     });
 
-    // ★修正2: 「元々一番下にいた」かつ「チャットが開いている」場合のみスクロールする
-    if (isAtBottom && document.getElementById("chat-overlay").style.display === "flex") {
+    if (document.getElementById("chat-overlay").style.display === "flex") {
         msgList.scrollTop = msgList.scrollHeight;
     }
 }
@@ -2926,7 +2641,4 @@ window.playYoutubeVideo = function() {
     </script>
 </body>
 </html>
-
-
-
 
