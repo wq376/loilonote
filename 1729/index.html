@@ -2133,29 +2133,40 @@ function startChatSync() {
     }
 }
 
-// PHPサーバーから取得する関数 (改良版)
+// --- シンフリー取得関数（エラー無視・安全版） ---
 async function fetchSymfreeMessages() {
     try {
         const formData = new FormData();
         formData.append('cmd', 'get_chat');
-        // キャッシュ回避のためのタイムスタンプを追加
+        // キャッシュ回避
         const res = await fetch(PHP_IMAGE_API + '?t=' + new Date().getTime(), { method: 'POST', body: formData });
         
-        if (!res.ok) return; // 通信エラー時は無視
+        // サーバーがエラーを返している、または中身が空の場合は無視する
+        if (!res.ok) return; 
+        const text = await res.text();
+        if (!text) return; // 空っぽなら何もしない
 
-        const json = await res.json();
+        const json = JSON.parse(text); // ここでパースする
+        
         if (json.status === 'ok' && Array.isArray(json.data)) {
             const list = [];
             json.data.forEach(item => {
-                // 日付データの安全な変換
                 let d = new Date();
                 try {
                     if(item.created_at) {
                         d = new Date(item.created_at);
-                        // 無効な日付なら現在時刻にする
                         if(isNaN(d.getTime())) d = new Date();
                     }
                 } catch(e) { d = new Date(); }
+
+                let readByArr = [];
+                if (item.read_by) {
+                    if (Array.isArray(item.read_by)) {
+                        readByArr = item.read_by;
+                    } else if (typeof item.read_by === 'string' && item.read_by.trim() !== "") {
+                        readByArr = item.read_by.split(',');
+                    }
+                }
 
                 list.push({
                     id: item.id,
@@ -2165,14 +2176,18 @@ async function fetchSymfreeMessages() {
                     uid: item.uid,
                     replyTo: item.reply_to,
                     createdAt: d,
-                    readBy: []
+                    readBy: readByArr
                 });
             });
+            
+            currentSymfreeList = list;
             renderChatMessages(list);
+            
+            if (document.getElementById("chat-overlay").style.display === "flex") checkAndMarkRead();
         }
     } catch(e) { 
-        // エラーが出てもコンソールに出すだけで、処理を止めない
-        console.warn("PHP fetch warning:", e); 
+        // エラーが起きてもアラートを出さずに、こっそりコンソールにだけ出す
+        console.warn("PHP fetch error (ignored):", e); 
     }
 }
 
